@@ -46,9 +46,10 @@ export async function updateSession(request: NextRequest) {
       .from('user_profiles')
       .select('role')
       .eq('id', user.id)
+      .returns<{ role: string }[]>()
       .single()
 
-    if (profile?.role !== 'formateur') {
+    if ((profile as { role?: string } | null)?.role !== 'formateur') {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
   }
