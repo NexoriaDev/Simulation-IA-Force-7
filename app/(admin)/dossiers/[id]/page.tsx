@@ -24,6 +24,7 @@ import {
   ClipboardList,
   PenLine,
   Sparkles,
+  MessageSquare,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -283,76 +284,130 @@ function ProfilTab({ prospect }: { prospect: Record<string, any> }) {
 
 // ─── ConversationTab ──────────────────────────────────────────────────────────
 
-function ConversationTab({ conversations, onValidate }: { conversations: any[]; onValidate: (id: string) => void }) {
+function ConversationTab({
+  conversations,
+  prospect,
+  onValidate,
+}: {
+  conversations: any[]
+  prospect: any
+  onValidate: (id: string) => void
+}) {
   if (conversations.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-[#E5E7EB] px-5 py-10 text-center">
-        <Mail size={32} className="mx-auto text-[#D1D5DB] mb-3" />
+        <MessageSquare size={32} className="mx-auto text-[#D1D5DB] mb-3" />
         <p className="text-sm text-[#9CA3AF]">Aucun échange enregistré</p>
       </div>
     )
   }
 
-  return (
-    <div className="space-y-3">
-      {conversations.map((msg, i) => {
-        const isIncoming = msg.sens === 'entrant'
-        const isPending = msg.statut_validation === 'en_attente'
-        const isValidated = msg.statut_validation === 'valide' || msg.statut_validation === 'modifie_et_valide'
+  const contactName = [prospect?.contact_prenom, prospect?.contact_nom].filter(Boolean).join(' ') || 'Contact'
+  const contactInitials = [prospect?.contact_prenom?.[0], prospect?.contact_nom?.[0]].filter(Boolean).join('').toUpperCase() || '?'
 
-        return (
-          <motion.div key={msg.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05, duration: 0.25 }}>
-            {isPending ? (
-              <div className="rounded-xl border-2 border-[#FEE700]/40 bg-amber-50/60 overflow-hidden">
-                <div className="px-4 py-2.5 bg-[#FEE700]/15 border-b border-[#FEE700]/20 flex items-center gap-2">
-                  <Sparkles size={13} className="text-amber-600 shrink-0" />
-                  <p className="text-xs font-semibold text-amber-700">Email préparé par l'IA — en attente de validation Iliès</p>
+  return (
+    <div className="bg-white rounded-xl border border-[#E5E7EB] flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="px-5 py-3 border-b border-[#F3F4F6] flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-[#6199C1]/10 flex items-center justify-center">
+          <span className="text-[#6199C1] text-xs font-semibold">{contactInitials}</span>
+        </div>
+        <div>
+          <p className="text-sm font-medium text-[#1F2937]">{contactName}</p>
+          <p className="text-[11px] text-[#9CA3AF]">{prospect?.nom_entreprise}</p>
+        </div>
+        <span className="ml-auto text-[11px] text-[#9CA3AF]">{conversations.length} messages</span>
+      </div>
+
+      {/* Messages */}
+      <div className="px-4 py-5 space-y-4 max-h-[600px] overflow-y-auto">
+        {conversations.map((msg, i) => {
+          const isIncoming = msg.sens === 'entrant'
+          const isPending = msg.statut_validation === 'en_attente'
+
+          if (isPending) {
+            return (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(i, 8) * 0.04, duration: 0.22 }}
+                className="flex flex-col items-end gap-1"
+              >
+                <div className="flex items-center gap-2 mb-0.5">
+                  <Sparkles size={11} className="text-amber-500" />
+                  <span className="text-[10px] font-semibold text-amber-600">Brouillon IA — en attente de validation Iliès</span>
                 </div>
-                <div className="px-5 py-4">
-                  <p className="text-xs text-[#9CA3AF] mb-3">{formatDateTime(msg.date)}</p>
+                <div className="max-w-[72%] rounded-2xl rounded-tr-sm border-2 border-[#FEE700] bg-amber-50/80 px-4 py-3 shadow-sm">
                   <p className="text-sm text-[#1F2937] whitespace-pre-wrap leading-relaxed">{msg.contenu}</p>
-                  <div className="mt-4 flex items-center gap-2 pt-3 border-t border-[#FEE700]/20">
-                    <button
-                      onClick={() => onValidate(msg.id)}
-                      className="flex items-center gap-1.5 bg-[#FEE700] hover:bg-[#FEE700]/90 text-[#6199C1] text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
-                    >
-                      <Check size={14} strokeWidth={2.5} />
-                      Valider et envoyer
-                    </button>
-                    <button className="flex items-center gap-1.5 border border-[#E5E7EB] bg-white hover:bg-[#F8F9FA] text-[#6B7280] text-sm px-4 py-2 rounded-lg transition-colors cursor-pointer">
-                      Modifier
-                    </button>
+                  <p className="text-[10px] text-[#9CA3AF] mt-1.5">{formatDateTime(msg.date)}</p>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <button
+                    onClick={() => onValidate(msg.id)}
+                    className="flex items-center gap-1.5 bg-[#FEE700] hover:bg-[#FEE700]/80 text-[#1267A4] text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <Check size={12} strokeWidth={2.5} />
+                    Valider et envoyer
+                  </button>
+                  <button className="text-xs text-[#6B7280] hover:text-[#1F2937] px-3 py-1.5 border border-[#E5E7EB] rounded-lg hover:bg-[#F8F9FA] transition-colors cursor-pointer">
+                    Modifier
+                  </button>
+                </div>
+              </motion.div>
+            )
+          }
+
+          if (isIncoming) {
+            return (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: Math.min(i, 8) * 0.04, duration: 0.22 }}
+                className="flex items-end gap-2"
+              >
+                <div className="w-7 h-7 rounded-full bg-[#E5E7EB] flex items-center justify-center shrink-0 mb-0.5">
+                  <span className="text-[#6B7280] text-[10px] font-semibold">{contactInitials}</span>
+                </div>
+                <div className="max-w-[68%]">
+                  <p className="text-[10px] text-[#9CA3AF] mb-1 ml-1">{contactName}</p>
+                  <div className="bg-[#F3F4F6] rounded-2xl rounded-tl-sm px-4 py-2.5">
+                    <p className="text-sm text-[#1F2937] leading-relaxed whitespace-pre-wrap">{msg.contenu}</p>
                   </div>
+                  <p className="text-[10px] text-[#9CA3AF] mt-1 ml-1">{formatDateTime(msg.date)}</p>
+                </div>
+              </motion.div>
+            )
+          }
+
+          return (
+            <motion.div
+              key={msg.id}
+              initial={{ opacity: 0, x: 12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: Math.min(i, 8) * 0.04, duration: 0.22 }}
+              className="flex items-end justify-end gap-2"
+            >
+              <div className="max-w-[68%]">
+                <p className="text-[10px] text-[#9CA3AF] mb-1 mr-1 text-right">Force 7 — Iliès</p>
+                <div className="bg-[#6199C1] rounded-2xl rounded-tr-sm px-4 py-2.5">
+                  <p className="text-sm text-white leading-relaxed whitespace-pre-wrap">{msg.contenu}</p>
+                </div>
+                <div className="flex items-center justify-end gap-1.5 mt-1 mr-1">
+                  {(msg.statut_validation === 'valide' || msg.statut_validation === 'modifie_et_valide') && (
+                    <Check size={10} className="text-[#16A34A]" strokeWidth={2.5} />
+                  )}
+                  <p className="text-[10px] text-[#9CA3AF]">{formatDateTime(msg.date)}</p>
                 </div>
               </div>
-            ) : (
-              <div className={cn('rounded-xl border overflow-hidden', isIncoming ? 'bg-[#F8F9FA] border-[#E5E7EB]' : isValidated ? 'bg-blue-50/40 border-blue-100' : 'bg-white border-[#E5E7EB]')}>
-                <div className="px-5 py-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      {isIncoming ? (
-                        <span className="flex items-center gap-1.5 text-[11px] text-[#6B7280]"><Mail size={11} />Email entrant</span>
-                      ) : (
-                        <span className="flex items-center gap-1.5 text-[11px] text-[#6199C1]">
-                          <Send size={11} />
-                          {isValidated ? (msg.statut_validation === 'modifie_et_valide' ? 'Modifié et validé' : 'Validé et envoyé') : 'Envoyé'}
-                        </span>
-                      )}
-                      {isValidated && (
-                        <span className="bg-green-50 text-green-700 border border-green-100 text-[10px] font-medium px-1.5 py-0.5 rounded-md">
-                          {msg.statut_validation === 'modifie_et_valide' ? 'Modifié et validé' : 'Validé'}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-[#9CA3AF]">{formatDateTime(msg.date)}</p>
-                  </div>
-                  <p className="text-sm text-[#1F2937] whitespace-pre-wrap leading-relaxed">{msg.contenu}</p>
-                </div>
+              <div className="w-7 h-7 rounded-full bg-[#1267A4] flex items-center justify-center shrink-0 mb-0.5">
+                <span className="text-white text-[10px] font-bold">F7</span>
               </div>
-            )}
-          </motion.div>
-        )
-      })}
+            </motion.div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -707,7 +762,7 @@ export default function FicheDossierPage({ params }: { params: Promise<{ id: str
               transition={{ duration: 0.18, ease: 'easeOut' }}
             >
               {activeTab === 'profil' && <ProfilTab prospect={prospect} />}
-              {activeTab === 'conversation' && <ConversationTab conversations={convData} onValidate={handleValidate} />}
+              {activeTab === 'conversation' && <ConversationTab conversations={convData} prospect={prospect} onValidate={handleValidate} />}
               {activeTab === 'documents' && <DocumentsTab documents={docData} />}
               {activeTab === 'parcours' && <ParcoursFormationTab prospectId={id} sessions={parcoursData} />}
             </motion.div>
