@@ -1,15 +1,15 @@
-# Charte graphique — Plateforme Force 7
+﻿# Charte graphique — Plateforme Force 7
 
 ## Couleurs principales
-- Bleu Force 7 (couleur de marque) : #0A4D8C
-- Bleu clair / accent secondaire (hover, liens) : #3B82C4
-- Jaune Force 7 (accent, CTA principaux) : #F5B400
-- Blanc / fond : #FFFFFF
-- Fond secondaire (cartes, sections) : #F8F9FA
+- Bleu foncé Force 7 (sidebar uniquement) : #1267A4
+- Bleu clair Force 7 (bordures, accents, éléments d'interface) : #6199C1
+- Jaune Force 7 (accent, CTA principaux, indicateurs actifs) : #FEE700
+- Blanc / fond de plateforme : #FFFFFF
+- Fond secondaire (en-têtes de tableau, zones neutres) : #F8F9FA
 
 ## Couleurs fonctionnelles
 - Succès / Validé : #16A34A
-- Attention / En attente : #F5B400 (jaune Force 7)
+- Attention / En attente : #FEE700 (jaune Force 7)
 - Erreur / Urgent : #DC2626
 - Texte principal : #1F2937 (gris foncé, pas de noir pur)
 

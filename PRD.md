@@ -311,12 +311,6 @@ Toutes les autres étapes (11 à 21 en INTRA, correspondant à 11-20 en INTER) s
    - Section Documents : tous les documents liés (devis, convention, facture…), chacun avec statut, date, actions (voir, télécharger)
    - Section Historique de conversation : fil chronologique complet des emails échangés (entrant/sortant) ; badge de validation IA visible sur chaque email généré (principe non-négociable : aucun envoi sans `statut_validation = 'Validé'`)
    - Indication claire de ce qui reste à faire/signer/soumettre pour faire avancer le dossier
-3. **Espace "À valider"** — file d'attente centralisée de tout ce qui attend une action d'Iliès (emails IA, devis, conventions, factures, envois de documents)
-4. **Fiche session de formation** — vue du dossier de formation : apprenants liés, formateur assigné, statuts EduSign/Keypredict, documents générés, avancement BEX
-5. **Espace formateur** (accès restreint) — sessions assignées, déroulé pédagogique à compléter, BEX à compléter, supports téléchargeables
-6. **Onglet "Formateurs"** — liste et fiches des formateurs inscrits
-7. **Onglet "Catalogue formations"** — gestion des formations types (intitulé, durée, prix, programme, trame PPT)
-8. **Notifications** — centralisées, visibles depuis n'importe quel écran
 
 ---
 
@@ -357,7 +351,6 @@ Vu le format validé (appli web cliquable, dashboard ERP simulé avec données f
 2. Le fil de qualification avec validation d'Iliès en un clic (Étapes 2-3)
 3. La cascade de statuts jusqu'au devis signé (Étapes 4-7)
 4. La bascule visuelle vers la fiche session avec apprenants, formateur assigné, statuts EduSign/Keypredict en temps réel (Étapes 11-17)
-5. L'espace "À valider" comme pièce maîtresse visuelle (montre la philosophie "Iliès garde la main")
-6. La génération finale de facture et son aiguillage automatique selon le statut de l'entreprise (Étape 20)
+5. La génération finale de facture et son aiguillage automatique selon le statut de l'entreprise (Étape 20)
 
 Ce périmètre couvre la totalité du tunnel sans nécessiter de développer en profondeur l'espace formateur (qui peut être montré en aperçu/mockup plutôt qu'en interaction complète) ni la gestion documentaire OneDrive réelle (simulable par un visuel d'arborescence).

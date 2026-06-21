@@ -1,11 +1,11 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 
 export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-10 w-full max-w-sm shadow-sm">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-[#0A4D8C] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-[#6199C1] flex items-center justify-center">
             <span className="text-white font-bold text-base">F7</span>
           </div>
           <div>
@@ -19,7 +19,7 @@ export default function LoginPage() {
 
         <Link
           href="/dashboard"
-          className="block w-full text-center bg-[#0A4D8C] hover:bg-[#0A4D8C]/90 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-sm cursor-pointer"
+          className="block w-full text-center bg-[#6199C1] hover:bg-[#6199C1]/90 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-sm cursor-pointer"
         >
           Accéder à la démo →
         </Link>

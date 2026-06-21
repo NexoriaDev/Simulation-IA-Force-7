@@ -65,6 +65,17 @@ La démo cible : tunnel complet devis → facture sur un cas fictif, avec simula
 
 2. **Corrections ponctuelles** — Pour toute correction ciblée (couleur, espacement, libellé), modifier uniquement l'élément précis demandé, sans régénérer un composant ou un écran entier.
 
+## Règles de mise en page
+
+Toute page de l'application doit utiliser la pleine largeur disponible entre la sidebar et le bord droit de l'écran, avec un padding cohérent de chaque côté (ex: `px-10`) — jamais de `max-w-*` centré qui laisse un vide latéral important.
+
+- **Par défaut** : `px-8` ou `px-10` sur le conteneur principal, sans `max-w` ni `mx-auto`
+- **Interdit par défaut** : `max-w-5xl mx-auto`, `max-w-6xl mx-auto`, `max-w-7xl mx-auto` ou tout centrage artificiel
+- **Exception** : centrage autorisé uniquement sur demande explicite, ou pour des formulaires courts (ex : page de connexion, `max-w-sm` OK)
+- **`max-w-[Npx]` inline** (texte tronqué, icônes) : autorisé, cette règle ne s'applique qu'aux conteneurs de mise en page
+
+Références visuelles : `design-refs/sidebar-reference.png` et `design-refs/onglet-utilisateurs.png`.
+
 ## Commandes utiles
 ```bash
 # Développement local

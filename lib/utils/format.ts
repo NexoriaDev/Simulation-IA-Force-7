@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   StatutDossier,
   StatutApprenant,
   StatutCollecteEntreprise,
@@ -6,7 +6,6 @@ import type {
   TypeDocument,
   StatutDocument,
 } from '@/lib/types'
-import type { AValiderType } from '@/lib/data/mock'
 
 // ─── Date ────────────────────────────────────────────────────────────────────
 
@@ -97,7 +96,7 @@ export const STATUT_DOSSIER_CONFIG: Record<StatutDossier, StatusConfig> = {
   devis_envoye: {
     label: 'Devis envoyé',
     bg: 'bg-blue-50',
-    text: 'text-[#0A4D8C]',
+    text: 'text-[#6199C1]',
     border: 'border-blue-200',
   },
   devis_signe: {
@@ -144,11 +143,11 @@ export const STATUT_COLLECTE_CONFIG: Record<StatutCollecteEntreprise, { label: s
     label: 'Demande envoyée',
     dot: 'bg-[#3B82C4]',
     bg: 'bg-blue-50',
-    text: 'text-[#0A4D8C]',
+    text: 'text-[#6199C1]',
   },
   relance_envoyee: {
     label: 'Relance envoyée',
-    dot: 'bg-[#F5B400]',
+    dot: 'bg-[#FEE700]',
     bg: 'bg-amber-50',
     text: 'text-amber-700',
   },
@@ -191,7 +190,7 @@ export function computeMilestones(statut: StatutApprenant): ApprenantMilestones 
 
 export const FINANCEMENT_CONFIG: Record<TypeFinancement, { label: string; bg: string; text: string }> = {
   direct: { label: 'Facturation directe', bg: 'bg-gray-100', text: 'text-gray-600' },
-  opco: { label: 'OPCO', bg: 'bg-blue-50', text: 'text-[#0A4D8C]' },
+  opco: { label: 'OPCO', bg: 'bg-blue-50', text: 'text-[#6199C1]' },
   public_parapublic: { label: 'Chorus / Public', bg: 'bg-violet-50', text: 'text-violet-700' },
   plateforme_privee: { label: 'Plateforme privée', bg: 'bg-orange-50', text: 'text-orange-700' },
 }
@@ -213,15 +212,6 @@ export const STATUT_DOCUMENT_CONFIG: Record<StatutDocument, { label: string; bg:
   genere: { label: 'Généré', bg: 'bg-gray-100', text: 'text-gray-600' },
   en_attente_validation: { label: 'À valider', bg: 'bg-amber-50', text: 'text-amber-700' },
   valide: { label: 'Validé', bg: 'bg-green-50', text: 'text-green-700' },
-  envoye: { label: 'Envoyé', bg: 'bg-[#0A4D8C]/10', text: 'text-[#0A4D8C]' },
+  envoye: { label: 'Envoyé', bg: 'bg-[#6199C1]/10', text: 'text-[#6199C1]' },
 }
 
-// ─── À valider type ──────────────────────────────────────────────────────────
-
-export const A_VALIDER_TYPE_CONFIG: Record<AValiderType, { label: string; icon: string; bg: string; text: string }> = {
-  email_ia: { label: 'Email IA', icon: 'mail', bg: 'bg-blue-50', text: 'text-[#0A4D8C]' },
-  devis: { label: 'Devis', icon: 'file-text', bg: 'bg-amber-50', text: 'text-amber-700' },
-  convention: { label: 'Convention', icon: 'file-check', bg: 'bg-violet-50', text: 'text-violet-700' },
-  facture: { label: 'Facture', icon: 'receipt', bg: 'bg-emerald-50', text: 'text-emerald-700' },
-  document: { label: 'Document', icon: 'file', bg: 'bg-gray-50', text: 'text-gray-600' },
-}

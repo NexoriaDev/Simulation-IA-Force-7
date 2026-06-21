@@ -421,45 +421,6 @@ export const MOCK_DOCUMENTS: Record<string, Document[]> = {
   ],
 }
 
-// ─── "À valider" items (dérivés de conversations en_attente + docs) ──────────
-
-export type AValiderType = 'email_ia' | 'devis' | 'convention' | 'facture' | 'document'
-
-export interface AValiderItem {
-  id: string
-  type: AValiderType
-  entreprise: string
-  description: string
-  prospect_client_id: string
-  date: string
-}
-
-export const MOCK_A_VALIDER: AValiderItem[] = [
-  {
-    id: 'val-001',
-    type: 'email_ia',
-    entreprise: 'BTP Solutions SARL',
-    description: "Email de relance devis — préparé par l'IA",
-    prospect_client_id: 'pc-001',
-    date: '2026-06-20T08:00:00Z',
-  },
-  {
-    id: 'val-002',
-    type: 'email_ia',
-    entreprise: 'Havre Logistique SA',
-    description: "Email de convocation stagiaires — préparé par l'IA",
-    prospect_client_id: 'pc-004',
-    date: '2026-06-19T11:00:00Z',
-  },
-  {
-    id: 'val-003',
-    type: 'facture',
-    entreprise: 'Conseil Régional Normandie',
-    description: 'Facture FACT-2026-0021 — à valider avant envoi',
-    prospect_client_id: 'pc-003',
-    date: '2026-06-18T16:00:00Z',
-  },
-]
 
 // ─── Notifications ────────────────────────────────────────────────────────────
 

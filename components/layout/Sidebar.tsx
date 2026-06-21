@@ -1,42 +1,30 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  LayoutDashboard,
-  CheckSquare,
-  UsersRound,
-  Users,
-  BookOpen,
-  Settings,
-  LogOut,
-} from 'lucide-react'
+import { UsersRound, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { MOCK_A_VALIDER } from '@/lib/data/mock'
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
-  { href: '/valider', label: 'À valider', icon: CheckSquare, badgeKey: 'valider' },
   { href: '/prospects', label: 'Prospects & Clients', icon: UsersRound },
-  { href: '/formateurs', label: 'Formateurs', icon: Users },
-  { href: '/catalogue', label: 'Catalogue', icon: BookOpen },
-  { href: '/parametres', label: 'Paramètres', icon: Settings },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
-  const aValiderCount = MOCK_A_VALIDER.length
 
   return (
-    <aside className="w-60 shrink-0 h-screen bg-[#0A4D8C] flex flex-col sticky top-0 z-30">
-      {/* Logo */}
-      <div className="px-5 py-5 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-[#F5B400] flex items-center justify-center shrink-0">
-          <span className="text-[#0A4D8C] font-bold text-sm leading-none tracking-tight">F7</span>
-        </div>
-        <div className="leading-tight">
-          <p className="text-white font-semibold text-sm">Force 7</p>
-          <p className="text-white/50 text-xs">Formation</p>
+    <aside className="w-60 shrink-0 h-screen bg-[#1267A4] flex flex-col sticky top-0 z-30">
+      {/* Bloc logo — carte intérieure sur fond sidebar uniforme, pas de ligne plein-largeur */}
+      {/* ponytail: remplacer le badge F7 par <Image src="/images/logo-force7.png" alt="Force 7" fill /> quand le fichier est disponible */}
+      <div className="px-4 pt-5 pb-3 shrink-0">
+        <div className="bg-[#EEF2F7] rounded-2xl flex flex-col items-center py-5 gap-2">
+          <div className="w-16 h-16 rounded-2xl bg-[#1267A4] flex items-center justify-center">
+            <span className="text-[#FEE700] font-black text-2xl leading-none tracking-tight">F7</span>
+          </div>
+          <div className="text-center leading-tight">
+            <p className="text-[#1267A4] font-bold text-sm tracking-wide">FORCE 7</p>
+            <p className="text-[#6B7280] text-[11px]">Formation</p>
+          </div>
         </div>
       </div>
 
@@ -46,10 +34,8 @@ export function Sidebar() {
           const isActive =
             item.href === '/prospects'
               ? pathname.startsWith('/prospects') || pathname.startsWith('/dossiers')
-              : pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
+              : pathname.startsWith(item.href)
           const Icon = item.icon
-          const badge = item.badgeKey === 'valider' ? aValiderCount : null
-
           return (
             <Link
               key={item.href}
@@ -62,20 +48,10 @@ export function Sidebar() {
               )}
             >
               {isActive && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#F5B400] rounded-r-full" />
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#FEE700] rounded-r-full" />
               )}
               <Icon size={15} strokeWidth={isActive ? 2 : 1.75} className="shrink-0" />
               <span className="flex-1 truncate">{item.label}</span>
-              {badge && badge > 0 && !isActive && (
-                <span className="bg-[#F5B400] text-[#0A4D8C] text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center">
-                  {badge}
-                </span>
-              )}
-              {badge && badge > 0 && isActive && (
-                <span className="bg-white/20 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center">
-                  {badge}
-                </span>
-              )}
             </Link>
           )
         })}

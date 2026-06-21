@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -50,9 +50,9 @@
 
 :root {
   /* ── Force 7 brand tokens ── */
-  --f7-blue: #0A4D8C;
+  --f7-blue: #6199C1;
   --f7-blue-light: #3B82C4;
-  --f7-yellow: #F5B400;
+  --f7-yellow: #FEE700;
   --f7-success: #16A34A;
   --f7-error: #DC2626;
   --f7-text: #1F2937;

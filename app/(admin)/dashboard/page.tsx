@@ -1,27 +1,19 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
   FolderOpen,
-  Clock,
   CalendarDays,
   AlertTriangle,
   Bell,
-  Mail,
-  FileText,
-  FileCheck,
-  Receipt,
-  ChevronRight,
   ArrowUpRight,
   Search,
-  Filter,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   MOCK_PROSPECTS,
-  MOCK_A_VALIDER,
   MOCK_NOTIFICATIONS,
   MOCK_SESSIONS,
   MOCK_URGENCES,
@@ -30,11 +22,9 @@ import {
 import {
   STATUT_DOSSIER_CONFIG,
   FINANCEMENT_CONFIG,
-  A_VALIDER_TYPE_CONFIG,
   formatRelativeDate,
 } from '@/lib/utils/format'
 import type { StatutDossier } from '@/lib/types'
-import type { AValiderType } from '@/lib/data/mock'
 
 // ─── Metric card ──────────────────────────────────────────────────────────────
 
@@ -58,8 +48,8 @@ function MetricCard({
       transition={{ duration: 0.3, delay, ease: 'easeOut' }}
       className="bg-white rounded-xl border border-[#E5E7EB] p-5 flex items-start gap-4"
     >
-      <div className={cn('p-2.5 rounded-lg', accent ?? 'bg-[#0A4D8C]/8')}>
-        <Icon size={18} className={accent ? 'text-current' : 'text-[#0A4D8C]'} strokeWidth={1.75} />
+      <div className={cn('p-2.5 rounded-lg', accent ?? 'bg-[#6199C1]/8')}>
+        <Icon size={18} className={accent ? 'text-current' : 'text-[#6199C1]'} strokeWidth={1.75} />
       </div>
       <div>
         <p className="text-[28px] font-semibold text-[#1F2937] leading-none mb-1">{value}</p>
@@ -67,20 +57,6 @@ function MetricCard({
       </div>
     </motion.div>
   )
-}
-
-// ─── À valider item icon ──────────────────────────────────────────────────────
-
-function ValiderIcon({ type }: { type: AValiderType }) {
-  const icons: Record<AValiderType, React.ElementType> = {
-    email_ia: Mail,
-    devis: FileText,
-    convention: FileCheck,
-    facture: Receipt,
-    document: FileText,
-  }
-  const Icon = icons[type] ?? FileText
-  return <Icon size={14} strokeWidth={1.75} />
 }
 
 // ─── Status pill ──────────────────────────────────────────────────────────────
@@ -174,96 +150,30 @@ export default function DashboardPage() {
           <p className="text-xs text-[#9CA3AF]">Samedi 20 juin 2026</p>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/valider" className="relative cursor-pointer">
-            <Bell size={18} className="text-[#6B7280] hover:text-[#1F2937] transition-colors" />
+          <div className="relative">
+            <Bell size={18} className="text-[#6B7280]" />
             {notifCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#F5B400] rounded-full text-[9px] font-bold text-[#0A4D8C] flex items-center justify-center">
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#FEE700] rounded-full text-[9px] font-bold text-[#6199C1] flex items-center justify-center">
                 {notifCount}
               </span>
             )}
-          </Link>
+          </div>
         </div>
       </div>
 
-      <div className="px-8 py-8 max-w-7xl mx-auto space-y-6">
+      <div className="px-8 py-8 space-y-6">
         {/* Metric cards */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <MetricCard label="Dossiers actifs" value={actifs} icon={FolderOpen} delay={0} />
-          <MetricCard
-            label="En attente de validation"
-            value={MOCK_A_VALIDER.length}
-            icon={Clock}
-            accent="bg-[#F5B400]/15 text-amber-600"
-            delay={0.05}
-          />
-          <MetricCard label="Sessions en cours" value={sessionsEnCours} icon={CalendarDays} delay={0.1} />
+          <MetricCard label="Sessions en cours" value={sessionsEnCours} icon={CalendarDays} delay={0.05} />
           <MetricCard
             label="Dossiers urgents"
             value={urgents}
             icon={AlertTriangle}
             accent="bg-red-50 text-red-500"
-            delay={0.15}
+            delay={0.1}
           />
         </div>
-
-        {/* À valider widget */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden"
-        >
-          <div className="px-5 py-3.5 border-b border-[#F3F4F6] flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="w-2 h-2 rounded-full bg-[#F5B400] animate-pulse" />
-              <p className="text-sm font-semibold text-[#1F2937]">À valider en priorité</p>
-              <span className="bg-[#F5B400]/20 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                {MOCK_A_VALIDER.length}
-              </span>
-            </div>
-            <Link
-              href="/valider"
-              className="text-xs text-[#3B82C4] hover:text-[#0A4D8C] transition-colors flex items-center gap-1 cursor-pointer"
-            >
-              Voir tout
-              <ChevronRight size={12} />
-            </Link>
-          </div>
-
-          <div className="divide-y divide-[#F3F4F6]">
-            {MOCK_A_VALIDER.map((item, i) => {
-              const cfg = A_VALIDER_TYPE_CONFIG[item.type]
-              return (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.25, delay: 0.25 + i * 0.07 }}
-                  className="px-5 py-3 flex items-center gap-4 hover:bg-[#FAFAFA] transition-colors"
-                >
-                  <div className={cn('p-1.5 rounded-md', cfg.bg)}>
-                    <span className={cfg.text}>
-                      <ValiderIcon type={item.type} />
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#1F2937] truncate">{item.entreprise}</p>
-                    <p className="text-xs text-[#6B7280] truncate">{item.description}</p>
-                  </div>
-                  <span className="text-[11px] text-[#9CA3AF] shrink-0">
-                    {formatRelativeDate(item.date)}
-                  </span>
-                  <Link
-                    href={`/dossiers/${item.prospect_client_id}`}
-                    className="shrink-0 bg-[#F5B400] hover:bg-[#F5B400]/90 text-[#0A4D8C] text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                  >
-                    Valider →
-                  </Link>
-                </motion.div>
-              )
-            })}
-          </div>
-        </motion.div>
 
         {/* Dossiers table */}
         <motion.div
@@ -282,7 +192,7 @@ export default function DashboardPage() {
                   className={cn(
                     'px-3 py-1.5 rounded-lg text-sm transition-colors cursor-pointer',
                     activeFilter === tab.key
-                      ? 'bg-[#0A4D8C] text-white font-medium'
+                      ? 'bg-[#6199C1] text-white font-medium'
                       : 'text-[#6B7280] hover:text-[#1F2937] hover:bg-[#F8F9FA]'
                   )}
                 >
@@ -295,7 +205,7 @@ export default function DashboardPage() {
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="text-sm border border-[#E5E7EB] rounded-lg px-3 py-1.5 text-[#6B7280] bg-white hover:border-[#9CA3AF] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0A4D8C]/20"
+                className="text-sm border border-[#E5E7EB] rounded-lg px-3 py-1.5 text-[#6B7280] bg-white hover:border-[#9CA3AF] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#6199C1]/20"
               >
                 <option value="">Tous types</option>
                 <option value="INTER">INTER</option>
@@ -312,7 +222,7 @@ export default function DashboardPage() {
                   placeholder="Rechercher..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-8 pr-3 py-1.5 text-sm border border-[#E5E7EB] rounded-lg text-[#1F2937] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#0A4D8C]/20 focus:border-[#0A4D8C]/40 transition-colors w-48"
+                  className="pl-8 pr-3 py-1.5 text-sm border border-[#E5E7EB] rounded-lg text-[#1F2937] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#6199C1]/20 focus:border-[#6199C1]/40 transition-colors w-48"
                 />
               </div>
             </div>
@@ -399,7 +309,7 @@ export default function DashboardPage() {
                                     'text-[10px] font-semibold px-1.5 py-0.5 rounded',
                                     p.type_formation === 'INTER'
                                       ? 'bg-violet-50 text-violet-700'
-                                      : 'bg-[#0A4D8C]/8 text-[#0A4D8C]'
+                                      : 'bg-[#6199C1]/8 text-[#6199C1]'
                                   )}
                                 >
                                   {p.type_formation}
