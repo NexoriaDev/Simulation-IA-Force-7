@@ -88,6 +88,12 @@ Après chaque modification de code (correction visuelle, ajout de fonctionnalit�
 
 **Exception** : demander confirmation avant de commiter si le changement est ambigu ou si plusieurs interprétations étaient possibles — mais par défaut, commit systématique après chaque tâche validée.
 
+## Skills et plugins à utiliser systématiquement
+
+- **ponytail** : appliquer son principe de sobriété de code (YAGNI, pas de sur-ingénierie) sur CHAQUE requête de développement, sans exception, pour limiter la consommation de tokens et la dette technique.
+- **framer-motion** et **ui-ux-pro-max** : utiliser systématiquement pour toute tâche impliquant de l'interface utilisateur (composants, écrans, transitions), afin de garantir un rendu moderne et animé conforme à la charte graphique Nexoria/Force 7.
+- Note d'arbitrage : en cas de tension entre les deux principes (ponytail pousse vers le minimum de code, ui-ux-pro-max/framer-motion ajoutent de la polish visuelle), privilégier la sobriété sur la logique métier et les données, et réserver le soin visuel à la couche présentation (animations, transitions, micro-interactions).
+
 ## Commandes utiles
 ```bash
 # Développement local
