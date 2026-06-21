@@ -76,6 +76,18 @@ Toute page de l'application doit utiliser la pleine largeur disponible entre la 
 
 Références visuelles : `design-refs/sidebar-reference.png` et `design-refs/onglet-utilisateurs.png`.
 
+## Discipline de commit
+
+Après chaque modification de code (correction visuelle, ajout de fonctionnalité, changement de données, etc.) :
+
+1. Vérifier que le changement fonctionne (build sans erreur TypeScript, comportement attendu confirmé)
+2. Commiter immédiatement avec un message clair et descriptif de ce qui a changé
+3. Ne jamais enchaîner plusieurs changements non liés sans commit entre chaque — un commit = une modification logique cohérente
+4. Si un changement touche plusieurs fichiers mais représente une seule action cohérente (ex : "ajouter l'onglet Profil" qui touche le composant + le PRD), un seul commit est acceptable pour cet ensemble
+5. Si un changement casse quelque chose d'existant ou que son état est incertain, commiter l'état stable précédent avant de continuer à corriger — ne jamais perdre de point de retour
+
+**Exception** : demander confirmation avant de commiter si le changement est ambigu ou si plusieurs interprétations étaient possibles — mais par défaut, commit systématique après chaque tâche validée.
+
 ## Commandes utiles
 ```bash
 # Développement local
