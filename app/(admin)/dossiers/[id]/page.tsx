@@ -27,16 +27,6 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
-  getCatalogueFormation,
-  getFormateur,
-  getSessionsForProspect,
-  getSessionEntreprisesForSession,
-  getApprenantsForSession,
-  MOCK_CONVERSATIONS,
-  MOCK_DOCUMENTS,
-  MOCK_PROSPECTS,
-} from '@/lib/data/mock'
-import {
   STATUT_DOSSIER_CONFIG,
   STATUTS_DOSSIER_ORDER,
   STATUT_COLLECTE_CONFIG,
@@ -293,9 +283,7 @@ function ProfilTab({ prospect }: { prospect: Record<string, any> }) {
 
 // ─── ConversationTab ──────────────────────────────────────────────────────────
 
-function ConversationTab({ prospectId, onValidate }: { prospectId: string; onValidate: (id: string) => void }) {
-  const conversations = MOCK_CONVERSATIONS[prospectId] ?? []
-
+function ConversationTab({ conversations, onValidate }: { conversations: any[]; onValidate: (id: string) => void }) {
   if (conversations.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-[#E5E7EB] px-5 py-10 text-center">
@@ -371,9 +359,7 @@ function ConversationTab({ prospectId, onValidate }: { prospectId: string; onVal
 
 // ─── DocumentsTab ─────────────────────────────────────────────────────────────
 
-function DocumentsTab({ prospectId }: { prospectId: string }) {
-  const documents = MOCK_DOCUMENTS[prospectId] ?? []
-
+function DocumentsTab({ documents }: { documents: any[] }) {
   if (documents.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-[#E5E7EB] px-5 py-10 text-center">
@@ -387,8 +373,8 @@ function DocumentsTab({ prospectId }: { prospectId: string }) {
     <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
       <div className="divide-y divide-[#F3F4F6]">
         {documents.map((doc, i) => {
-          const typeLabel = TYPE_DOCUMENT_LABELS[doc.type_document] ?? doc.type_document
-          const statutCfg = STATUT_DOCUMENT_CONFIG[doc.statut]
+          const typeLabel = TYPE_DOCUMENT_LABELS[doc.type_document as keyof typeof TYPE_DOCUMENT_LABELS] ?? doc.type_document
+          const statutCfg = STATUT_DOCUMENT_CONFIG[doc.statut as keyof typeof STATUT_DOCUMENT_CONFIG]
           return (
             <motion.div
               key={doc.id}
@@ -422,9 +408,7 @@ function DocumentsTab({ prospectId }: { prospectId: string }) {
 
 // ─── ParcoursFormationTab ─────────────────────────────────────────────────────
 
-function ParcoursFormationTab({ prospectId }: { prospectId: string }) {
-  const sessions = getSessionsForProspect(prospectId)
-
+function ParcoursFormationTab({ prospectId, sessions }: { prospectId: string; sessions: any[] }) {
   if (sessions.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-[#E5E7EB] px-5 py-10 text-center">
@@ -438,12 +422,12 @@ function ParcoursFormationTab({ prospectId }: { prospectId: string }) {
   return (
     <div className="space-y-4">
       {sessions.map((session, si) => {
-        const formation = getCatalogueFormation(session.formation_id)
-        const formateur = getFormateur(session.formateur_id ?? '')
+        const formation = session.catalogue_formations as { intitule: string } | null
+        const formateur = session.formateurs as { nom: string; prenom: string } | null
         const isInter = session.type_formation === 'INTER'
 
         if (isInter) {
-          const sessionEntreprises = getSessionEntreprisesForSession(session.id)
+          const sessionEntreprises = session.session_entreprises ?? []
           return (
             <motion.div key={session.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: si * 0.1 }} className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
               <div className="px-5 py-4 border-b border-[#F3F4F6]">
@@ -462,10 +446,10 @@ function ParcoursFormationTab({ prospectId }: { prospectId: string }) {
                 </div>
               </div>
               <div className="divide-y divide-[#F8F9FA]">
-                {sessionEntreprises.map((se) => {
-                  const entreprise = MOCK_PROSPECTS.find((p) => p.id === se.prospect_client_id)
-                  const collecteCfg = STATUT_COLLECTE_CONFIG[se.statut_collecte_infos]
-                  const apprenants = getApprenantsForSession(session.id, se.prospect_client_id)
+                {sessionEntreprises.map((se: any) => {
+                  const entreprise = se.prospects_clients as { nom_entreprise: string } | null
+                  const collecteCfg = STATUT_COLLECTE_CONFIG[se.statut_collecte_infos as keyof typeof STATUT_COLLECTE_CONFIG]
+                  const apprenants = se.apprenants ?? []
                   const isCurrentCompany = se.prospect_client_id === prospectId
                   return (
                     <div key={se.id} className={cn('', isCurrentCompany && 'bg-[#6199C1]/2')}>
@@ -494,7 +478,7 @@ function ParcoursFormationTab({ prospectId }: { prospectId: string }) {
                             </div>
                             <div className="w-[100px]" />
                           </div>
-                          {apprenants.map((apprenant) => <ApprenantRow key={apprenant.id} apprenant={apprenant} />)}
+                          {apprenants.map((apprenant: Apprenant) => <ApprenantRow key={apprenant.id} apprenant={apprenant} />)}
                         </div>
                       ) : (
                         <div className="px-5 py-3.5 flex items-center gap-2 text-[#9CA3AF]">
@@ -509,7 +493,8 @@ function ParcoursFormationTab({ prospectId }: { prospectId: string }) {
             </motion.div>
           )
         } else {
-          const apprenants = getApprenantsForSession(session.id, prospectId)
+          const apprenants = (session.session_entreprises ?? [])
+            .find((se: any) => se.prospect_client_id === prospectId)?.apprenants ?? []
           return (
             <motion.div key={session.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: si * 0.1 }} className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
               <div className="px-5 py-4 border-b border-[#F3F4F6]">
@@ -539,7 +524,7 @@ function ParcoursFormationTab({ prospectId }: { prospectId: string }) {
                     </div>
                     <div className="w-[100px]" />
                   </div>
-                  {apprenants.map((apprenant) => <ApprenantRow key={apprenant.id} apprenant={apprenant} />)}
+                  {apprenants.map((apprenant: Apprenant) => <ApprenantRow key={apprenant.id} apprenant={apprenant} />)}
                 </div>
               ) : (
                 <div className="px-5 py-6 flex items-center gap-2 text-[#9CA3AF]">
@@ -560,12 +545,24 @@ function ParcoursFormationTab({ prospectId }: { prospectId: string }) {
 export default function FicheDossierPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [prospect, setProspect] = useState<any>(null)
+  const [convData, setConvData] = useState<any[]>([])
+  const [docData, setDocData] = useState<any[]>([])
+  const [parcoursData, setParcoursData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(`/api/prospect/${id}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { setProspect(data); setLoading(false) })
+    Promise.all([
+      fetch(`/api/prospect/${id}`).then((r) => (r.ok ? r.json() : null)),
+      fetch(`/api/conversations/${id}`).then((r) => r.json()),
+      fetch(`/api/documents/${id}`).then((r) => r.json()),
+      fetch(`/api/parcours/${id}`).then((r) => r.json()),
+    ]).then(([prospect, convs, docs, parcours]) => {
+      setProspect(prospect)
+      setConvData(convs ?? [])
+      setDocData(docs ?? [])
+      setParcoursData(parcours ?? [])
+      setLoading(false)
+    })
   }, [id])
 
   const [activeTab, setActiveTab] = useState<TabKey>('profil')
@@ -598,11 +595,9 @@ export default function FicheDossierPage({ params }: { params: Promise<{ id: str
 
   const p = prospect as any
 
-  const conversations = MOCK_CONVERSATIONS[id] ?? []
-  const hasPendingMessage = conversations.some(
+  const hasPendingMessage = convData.some(
     (c) => c.statut_validation === 'en_attente' && !validatedMessages.has(c.id)
   )
-  const sessionsCount = getSessionsForProspect(id).length
 
   const type = getTypeDossier(p.statut)
   const typeBadgeStyle =
@@ -613,9 +608,9 @@ export default function FicheDossierPage({ params }: { params: Promise<{ id: str
         : 'bg-gray-50 text-gray-600 border-gray-200'
 
   const tabBadges: Partial<Record<TabKey, number>> = {
-    conversation: conversations.length,
-    documents: (MOCK_DOCUMENTS[id] ?? []).length,
-    parcours: sessionsCount > 0 ? sessionsCount : undefined,
+    conversation: convData.length,
+    documents: docData.length,
+    parcours: parcoursData.length > 0 ? parcoursData.length : undefined,
   }
 
   return (
@@ -666,7 +661,7 @@ export default function FicheDossierPage({ params }: { params: Promise<{ id: str
             )}
           </div>
 
-          {/* Stepper — inchangé */}
+          {/* Stepper */}
           <div className="px-6 py-4 border-t border-[#F8F9FA] bg-[#FAFAFA]">
             <StatusStepper statut={p.statut} />
           </div>
@@ -712,9 +707,9 @@ export default function FicheDossierPage({ params }: { params: Promise<{ id: str
               transition={{ duration: 0.18, ease: 'easeOut' }}
             >
               {activeTab === 'profil' && <ProfilTab prospect={prospect} />}
-              {activeTab === 'conversation' && <ConversationTab prospectId={id} onValidate={handleValidate} />}
-              {activeTab === 'documents' && <DocumentsTab prospectId={id} />}
-              {activeTab === 'parcours' && <ParcoursFormationTab prospectId={id} />}
+              {activeTab === 'conversation' && <ConversationTab conversations={convData} onValidate={handleValidate} />}
+              {activeTab === 'documents' && <DocumentsTab documents={docData} />}
+              {activeTab === 'parcours' && <ParcoursFormationTab prospectId={id} sessions={parcoursData} />}
             </motion.div>
           </AnimatePresence>
         </motion.div>
