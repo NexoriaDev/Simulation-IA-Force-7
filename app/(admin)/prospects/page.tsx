@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Search, Eye, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
+
 import {
   STATUT_DOSSIER_CONFIG,
   FINANCEMENT_CONFIG,
@@ -76,12 +76,9 @@ function ProspectsPageInner() {
   const [allProspects, setAllProspects] = useState<ProspectRow[]>([])
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase
-      .from('prospects_clients')
-      .select('*, catalogue_formations(intitule)')
-      .order('updated_at', { ascending: false })
-      .then(({ data }) => setAllProspects((data ?? []) as ProspectRow[]))
+    fetch('/api/prospects-data')
+      .then((r) => r.json())
+      .then(({ prospects }) => setAllProspects(prospects))
   }, [])
 
   const q = searchParams.get('q') ?? ''

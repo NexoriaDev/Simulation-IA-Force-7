@@ -12,7 +12,7 @@ import {
   Search,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
+
 import {
   STATUT_DOSSIER_CONFIG,
   FINANCEMENT_CONFIG,
@@ -128,19 +128,13 @@ export default function DashboardPage() {
   const [sessionCount, setSessionCount] = useState(0)
 
   useEffect(() => {
-    const supabase = createClient()
-    Promise.all([
-      supabase
-        .from('prospects_clients')
-        .select('*, catalogue_formations(intitule)')
-        .order('updated_at', { ascending: false }),
-      supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('lu', false),
-      supabase.from('sessions_formation').select('id', { count: 'exact', head: true }),
-    ]).then(([{ data: p }, { count: n }, { count: s }]) => {
-      setAllProspects((p ?? []) as ProspectRow[])
-      setNotifCount(n ?? 0)
-      setSessionCount(s ?? 0)
-    })
+    fetch('/api/prospects-data')
+      .then((r) => r.json())
+      .then(({ prospects, sessions, notifs }) => {
+        setAllProspects(prospects)
+        setSessionCount(sessions)
+        setNotifCount(notifs)
+      })
   }, [])
 
   const actifs = allProspects.filter((p) => p.statut !== 'prospect_perdu').length

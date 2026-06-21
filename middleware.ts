@@ -1,55 +1,8 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
-
-  const { pathname } = request.nextUrl
-
-  if (pathname.startsWith('/login') || pathname.startsWith('/api/webhooks')) {
-    return supabaseResponse
-  }
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  if (pathname.startsWith('/mes-sessions') || pathname.startsWith('/inscription')) {
-    const { data } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if ((data as { role?: string } | null)?.role !== 'formateur') {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-  }
-
-  return supabaseResponse
+// ponytail: auth bypassed for dev/demo — réactiver quand le flow login est finalisé
+export function middleware(request: NextRequest) {
+  return NextResponse.next({ request })
 }
 
 export const config = {
