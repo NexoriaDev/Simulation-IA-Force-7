@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, use } from 'react'
+import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -27,7 +27,6 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
-  getProspect,
   getCatalogueFormation,
   getFormateur,
   getSessionsForProspect,
@@ -224,9 +223,9 @@ function ProfilField({ icon: Icon, label, children }: { icon: React.ElementType;
   )
 }
 
-function ProfilTab({ prospect }: { prospect: ReturnType<typeof getProspect> & object }) {
+function ProfilTab({ prospect }: { prospect: Record<string, any> }) {
   const p = prospect as any
-  const formation = getCatalogueFormation(p.formation_souhaitee ?? '')
+  const formation = p.catalogue_formations as { intitule: string } | null
   const financementCfg = p.type_financement
     ? FINANCEMENT_CONFIG[p.type_financement as keyof typeof FINANCEMENT_CONFIG]
     : null
@@ -560,13 +559,28 @@ function ParcoursFormationTab({ prospectId }: { prospectId: string }) {
 
 export default function FicheDossierPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const prospect = getProspect(id)
+  const [prospect, setProspect] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`/api/prospect/${id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { setProspect(data); setLoading(false) })
+  }, [id])
 
   const [activeTab, setActiveTab] = useState<TabKey>('profil')
   const [validatedMessages, setValidatedMessages] = useState<Set<string>>(new Set())
 
   const handleValidate = (msgId: string) => {
     setValidatedMessages((prev) => new Set([...prev, msgId]))
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-full bg-white flex items-center justify-center">
+        <p className="text-sm text-[#9CA3AF]">Chargement…</p>
+      </div>
+    )
   }
 
   if (!prospect) {
