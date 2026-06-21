@@ -8,7 +8,7 @@
 -- ─── Types énumérés ──────────────────────────────────────────────────────────
 
 create type statut_dossier as enum (
-  'devis_en_attente', 'devis_genere', 'devis_envoye',
+  'profil_cree', 'devis_en_attente', 'devis_genere', 'devis_envoye',
   'devis_signe', 'prospect_gagne', 'valide', 'prospect_perdu'
 );
 
