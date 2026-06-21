@@ -1,0 +1,463 @@
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
+import {
+  FolderOpen,
+  Clock,
+  CalendarDays,
+  AlertTriangle,
+  Bell,
+  Mail,
+  FileText,
+  FileCheck,
+  Receipt,
+  ChevronRight,
+  ArrowUpRight,
+  Search,
+  Filter,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import {
+  MOCK_PROSPECTS,
+  MOCK_A_VALIDER,
+  MOCK_NOTIFICATIONS,
+  MOCK_SESSIONS,
+  MOCK_URGENCES,
+  getCatalogueFormation,
+} from '@/lib/data/mock'
+import {
+  STATUT_DOSSIER_CONFIG,
+  FINANCEMENT_CONFIG,
+  A_VALIDER_TYPE_CONFIG,
+  formatRelativeDate,
+} from '@/lib/utils/format'
+import type { StatutDossier } from '@/lib/types'
+import type { AValiderType } from '@/lib/data/mock'
+
+// ─── Metric card ──────────────────────────────────────────────────────────────
+
+function MetricCard({
+  label,
+  value,
+  icon: Icon,
+  accent,
+  delay,
+}: {
+  label: string
+  value: number
+  icon: React.ElementType
+  accent?: string
+  delay: number
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay, ease: 'easeOut' }}
+      className="bg-white rounded-xl border border-[#E5E7EB] p-5 flex items-start gap-4"
+    >
+      <div className={cn('p-2.5 rounded-lg', accent ?? 'bg-[#0A4D8C]/8')}>
+        <Icon size={18} className={accent ? 'text-current' : 'text-[#0A4D8C]'} strokeWidth={1.75} />
+      </div>
+      <div>
+        <p className="text-[28px] font-semibold text-[#1F2937] leading-none mb-1">{value}</p>
+        <p className="text-xs text-[#6B7280]">{label}</p>
+      </div>
+    </motion.div>
+  )
+}
+
+// ─── À valider item icon ──────────────────────────────────────────────────────
+
+function ValiderIcon({ type }: { type: AValiderType }) {
+  const icons: Record<AValiderType, React.ElementType> = {
+    email_ia: Mail,
+    devis: FileText,
+    convention: FileCheck,
+    facture: Receipt,
+    document: FileText,
+  }
+  const Icon = icons[type] ?? FileText
+  return <Icon size={14} strokeWidth={1.75} />
+}
+
+// ─── Status pill ──────────────────────────────────────────────────────────────
+
+function StatusPill({ statut }: { statut: StatutDossier }) {
+  const cfg = STATUT_DOSSIER_CONFIG[statut]
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium border',
+        cfg.bg,
+        cfg.text,
+        cfg.border
+      )}
+    >
+      <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
+      {cfg.label}
+    </span>
+  )
+}
+
+// ─── Filter tabs ──────────────────────────────────────────────────────────────
+
+const FILTER_TABS = [
+  { key: 'tous', label: 'Tous' },
+  { key: 'actifs', label: 'En cours' },
+  { key: 'gagne', label: 'Gagnés' },
+  { key: 'perdu', label: 'Perdus' },
+] as const
+
+type FilterKey = (typeof FILTER_TABS)[number]['key']
+
+function filterProspects(filter: FilterKey, search: string, typeFilter: string) {
+  let list = MOCK_PROSPECTS
+
+  if (filter === 'actifs') {
+    list = list.filter(
+      (p) =>
+        p.statut !== 'prospect_perdu' &&
+        p.statut !== 'valide'
+    )
+  } else if (filter === 'gagne') {
+    list = list.filter(
+      (p) => p.statut === 'prospect_gagne' || p.statut === 'valide'
+    )
+  } else if (filter === 'perdu') {
+    list = list.filter((p) => p.statut === 'prospect_perdu')
+  }
+
+  if (typeFilter) {
+    list = list.filter((p) => p.type_formation === typeFilter)
+  }
+
+  if (search.trim()) {
+    const q = search.toLowerCase()
+    list = list.filter(
+      (p) =>
+        p.nom_entreprise.toLowerCase().includes(q) ||
+        p.contact_nom.toLowerCase().includes(q) ||
+        p.contact_prenom.toLowerCase().includes(q)
+    )
+  }
+
+  return [...list].sort(
+    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  )
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
+
+export default function DashboardPage() {
+  const [activeFilter, setActiveFilter] = useState<FilterKey>('tous')
+  const [typeFilter, setTypeFilter] = useState('')
+  const [search, setSearch] = useState('')
+
+  const notifCount = MOCK_NOTIFICATIONS.filter((n) => !n.lu).length
+  const sessionsEnCours = MOCK_SESSIONS.length
+  const urgents = Object.values(MOCK_URGENCES).filter(Boolean).length
+  const actifs = MOCK_PROSPECTS.filter(
+    (p) => p.statut !== 'prospect_perdu'
+  ).length
+
+  const prospects = filterProspects(activeFilter, search, typeFilter)
+
+  return (
+    <div className="min-h-full bg-[#F8F9FA]">
+      {/* Top bar */}
+      <div className="bg-white border-b border-[#E5E7EB] px-8 py-4 flex items-center justify-between sticky top-0 z-20">
+        <div>
+          <h1 className="text-lg font-semibold text-[#1F2937]">Tableau de bord</h1>
+          <p className="text-xs text-[#9CA3AF]">Samedi 20 juin 2026</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link href="/valider" className="relative cursor-pointer">
+            <Bell size={18} className="text-[#6B7280] hover:text-[#1F2937] transition-colors" />
+            {notifCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#F5B400] rounded-full text-[9px] font-bold text-[#0A4D8C] flex items-center justify-center">
+                {notifCount}
+              </span>
+            )}
+          </Link>
+        </div>
+      </div>
+
+      <div className="px-8 py-8 max-w-7xl mx-auto space-y-6">
+        {/* Metric cards */}
+        <div className="grid grid-cols-4 gap-4">
+          <MetricCard label="Dossiers actifs" value={actifs} icon={FolderOpen} delay={0} />
+          <MetricCard
+            label="En attente de validation"
+            value={MOCK_A_VALIDER.length}
+            icon={Clock}
+            accent="bg-[#F5B400]/15 text-amber-600"
+            delay={0.05}
+          />
+          <MetricCard label="Sessions en cours" value={sessionsEnCours} icon={CalendarDays} delay={0.1} />
+          <MetricCard
+            label="Dossiers urgents"
+            value={urgents}
+            icon={AlertTriangle}
+            accent="bg-red-50 text-red-500"
+            delay={0.15}
+          />
+        </div>
+
+        {/* À valider widget */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden"
+        >
+          <div className="px-5 py-3.5 border-b border-[#F3F4F6] flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-[#F5B400] animate-pulse" />
+              <p className="text-sm font-semibold text-[#1F2937]">À valider en priorité</p>
+              <span className="bg-[#F5B400]/20 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {MOCK_A_VALIDER.length}
+              </span>
+            </div>
+            <Link
+              href="/valider"
+              className="text-xs text-[#3B82C4] hover:text-[#0A4D8C] transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              Voir tout
+              <ChevronRight size={12} />
+            </Link>
+          </div>
+
+          <div className="divide-y divide-[#F3F4F6]">
+            {MOCK_A_VALIDER.map((item, i) => {
+              const cfg = A_VALIDER_TYPE_CONFIG[item.type]
+              return (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.25, delay: 0.25 + i * 0.07 }}
+                  className="px-5 py-3 flex items-center gap-4 hover:bg-[#FAFAFA] transition-colors"
+                >
+                  <div className={cn('p-1.5 rounded-md', cfg.bg)}>
+                    <span className={cfg.text}>
+                      <ValiderIcon type={item.type} />
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[#1F2937] truncate">{item.entreprise}</p>
+                    <p className="text-xs text-[#6B7280] truncate">{item.description}</p>
+                  </div>
+                  <span className="text-[11px] text-[#9CA3AF] shrink-0">
+                    {formatRelativeDate(item.date)}
+                  </span>
+                  <Link
+                    href={`/dossiers/${item.prospect_client_id}`}
+                    className="shrink-0 bg-[#F5B400] hover:bg-[#F5B400]/90 text-[#0A4D8C] text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Valider →
+                  </Link>
+                </motion.div>
+              )
+            })}
+          </div>
+        </motion.div>
+
+        {/* Dossiers table */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.3 }}
+          className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden"
+        >
+          {/* Table header */}
+          <div className="px-5 py-4 border-b border-[#F3F4F6] flex items-center justify-between gap-4">
+            <div className="flex items-center gap-1">
+              {FILTER_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveFilter(tab.key)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg text-sm transition-colors cursor-pointer',
+                    activeFilter === tab.key
+                      ? 'bg-[#0A4D8C] text-white font-medium'
+                      : 'text-[#6B7280] hover:text-[#1F2937] hover:bg-[#F8F9FA]'
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="text-sm border border-[#E5E7EB] rounded-lg px-3 py-1.5 text-[#6B7280] bg-white hover:border-[#9CA3AF] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0A4D8C]/20"
+              >
+                <option value="">Tous types</option>
+                <option value="INTER">INTER</option>
+                <option value="INTRA">INTRA</option>
+              </select>
+
+              <div className="relative">
+                <Search
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
+                />
+                <input
+                  type="text"
+                  placeholder="Rechercher..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-8 pr-3 py-1.5 text-sm border border-[#E5E7EB] rounded-lg text-[#1F2937] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#0A4D8C]/20 focus:border-[#0A4D8C]/40 transition-colors w-48"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-[#F8F9FA] border-b border-[#E5E7EB]">
+                  <th className="text-left text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide px-5 py-3">
+                    Entreprise
+                  </th>
+                  <th className="text-left text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide px-4 py-3">
+                    Formation
+                  </th>
+                  <th className="text-left text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide px-4 py-3">
+                    Statut
+                  </th>
+                  <th className="text-left text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide px-4 py-3">
+                    Financement
+                  </th>
+                  <th className="text-left text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide px-4 py-3">
+                    Activité
+                  </th>
+                  <th className="px-4 py-3 w-10" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#F3F4F6]">
+                {prospects.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-10 text-center text-sm text-[#9CA3AF]">
+                      Aucun dossier trouvé
+                    </td>
+                  </tr>
+                ) : (
+                  prospects.map((p, i) => {
+                    const formation = getCatalogueFormation(p.formation_souhaitee ?? '')
+                    const financement = p.type_financement
+                      ? FINANCEMENT_CONFIG[p.type_financement]
+                      : null
+                    const urgent = MOCK_URGENCES[p.id]
+
+                    return (
+                      <motion.tr
+                        key={p.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.2, delay: i * 0.04 }}
+                        className="hover:bg-[#FAFAFA] transition-colors group"
+                      >
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-2.5">
+                            {urgent && (
+                              <span title="Urgence détectée par l'IA">
+                                <AlertTriangle
+                                  size={13}
+                                  className="text-[#DC2626] shrink-0"
+                                  strokeWidth={2}
+                                />
+                              </span>
+                            )}
+                            <div>
+                              <p className="font-medium text-[#1F2937] leading-tight">
+                                {p.nom_entreprise}
+                              </p>
+                              <p className="text-[11px] text-[#9CA3AF] leading-tight">
+                                {p.contact_prenom} {p.contact_nom}
+                                {p.contact_fonction ? ` · ${p.contact_fonction}` : ''}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3.5">
+                          <div>
+                            <p className="text-[#1F2937] leading-tight truncate max-w-[180px]">
+                              {formation?.intitule ?? '—'}
+                            </p>
+                            <div className="mt-0.5">
+                              {p.type_formation && (
+                                <span
+                                  className={cn(
+                                    'text-[10px] font-semibold px-1.5 py-0.5 rounded',
+                                    p.type_formation === 'INTER'
+                                      ? 'bg-violet-50 text-violet-700'
+                                      : 'bg-[#0A4D8C]/8 text-[#0A4D8C]'
+                                  )}
+                                >
+                                  {p.type_formation}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3.5">
+                          <StatusPill statut={p.statut} />
+                        </td>
+
+                        <td className="px-4 py-3.5">
+                          {financement && (
+                            <span
+                              className={cn(
+                                'text-[11px] px-2 py-0.5 rounded-md font-medium',
+                                financement.bg,
+                                financement.text
+                              )}
+                            >
+                              {financement.label}
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="px-4 py-3.5">
+                          <p className="text-[12px] text-[#6B7280]">
+                            {formatRelativeDate(p.updated_at)}
+                          </p>
+                        </td>
+
+                        <td className="px-4 py-3.5">
+                          <Link
+                            href={`/dossiers/${p.id}`}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-7 h-7 rounded-lg hover:bg-[#F3F4F6] cursor-pointer"
+                            aria-label={`Ouvrir la fiche ${p.nom_entreprise}`}
+                          >
+                            <ArrowUpRight size={14} className="text-[#6B7280]" />
+                          </Link>
+                        </td>
+                      </motion.tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Table footer */}
+          <div className="px-5 py-3 border-t border-[#F3F4F6] flex items-center justify-between">
+            <p className="text-[11px] text-[#9CA3AF]">
+              {prospects.length} dossier{prospects.length > 1 ? 's' : ''}
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  )
+}

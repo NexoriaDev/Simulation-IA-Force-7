@@ -1,6 +1,7 @@
 // Types issus du PRD §3 — 11 entités de données
 
 export type StatutDossier =
+  | 'profil_cree'
   | 'devis_en_attente'
   | 'devis_genere'
   | 'devis_envoye'

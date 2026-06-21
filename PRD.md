@@ -298,8 +298,19 @@ Toutes les autres étapes (11 à 21 en INTRA, correspondant à 11-20 en INTER) s
 
 ## 7. Écrans principaux de la plateforme
 
-1. **Tableau de bord / Liste des dossiers** — vue d'ensemble de tous les prospects/clients et sessions en cours, filtrable par statut, type de formation, urgence
-2. **Fiche dossier (prospect/client)** — profil, historique de conversation complet, documents liés, statut, actions disponibles
+1. **Liste Prospects/Clients**
+   - Barre de recherche pleine largeur (nom, email, organisation)
+   - Filtres alignés à droite de la recherche : par statut (cycle de vie), par type (Prospect / Client)
+   - Tableau avec colonnes : Entreprise/Contact, Formation, Statut, Type (badge Prospect/Client), Financement, Dernière activité, Actions
+   - Icône "œil" sur chaque ligne → ouvre la fiche détaillée
+   - Inspiration : tableau dense mais lisible, badges de statut en contour fin couleur pâle, esprit CRM B2B moderne
+
+2. **Fiche détaillée Prospect/Client**
+   - Profil en haut : informations du contact et de l'entreprise
+   - Timeline horizontale scrollable : tous les statuts du cycle de vie en frise (Profil créé → Devis en attente → Devis généré → Devis envoyé → Devis signé → Prospect gagné → Validé → [Prospect perdu en branche alternative]), statut actuel mis en évidence ; démarcation visuelle (couleur/marqueur) au passage Prospect → Client (à partir de Validé)
+   - Section Documents : tous les documents liés (devis, convention, facture…), chacun avec statut, date, actions (voir, télécharger)
+   - Section Historique de conversation : fil chronologique complet des emails échangés (entrant/sortant) ; badge de validation IA visible sur chaque email généré (principe non-négociable : aucun envoi sans `statut_validation = 'Validé'`)
+   - Indication claire de ce qui reste à faire/signer/soumettre pour faire avancer le dossier
 3. **Espace "À valider"** — file d'attente centralisée de tout ce qui attend une action d'Iliès (emails IA, devis, conventions, factures, envois de documents)
 4. **Fiche session de formation** — vue du dossier de formation : apprenants liés, formateur assigné, statuts EduSign/Keypredict, documents générés, avancement BEX
 5. **Espace formateur** (accès restreint) — sessions assignées, déroulé pédagogique à compléter, BEX à compléter, supports téléchargeables
