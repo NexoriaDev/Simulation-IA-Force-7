@@ -1,6 +1,30 @@
-﻿import Link from 'next/link'
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    const supabase = createClient()
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      setError('Email ou mot de passe incorrect.')
+      setLoading(false)
+    } else {
+      router.push('/dashboard')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center">
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-10 w-full max-w-sm shadow-sm">
@@ -14,19 +38,53 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <h1 className="text-xl font-semibold text-[#1F2937] mb-1">Connexion</h1>
-        <p className="text-sm text-[#6B7280] mb-6">Mode démonstration actif</p>
+        <h1 className="text-xl font-semibold text-[#1F2937] mb-6">Connexion</h1>
 
-        <Link
-          href="/dashboard"
-          className="block w-full text-center bg-[#6199C1] hover:bg-[#6199C1]/90 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-sm cursor-pointer"
-        >
-          Accéder à la démo →
-        </Link>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[#374151] mb-1.5">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              placeholder="ilies@force7-formation.fr"
+              className="w-full px-3 py-2.5 text-sm border border-[#E5E7EB] rounded-lg text-[#1F2937] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#6199C1]/20 focus:border-[#6199C1]/40 transition-colors"
+            />
+          </div>
 
-        <p className="text-xs text-[#9CA3AF] text-center mt-6">
-          Connecté en tant qu'Iliès — Administration
-        </p>
+          <div>
+            <label className="block text-sm font-medium text-[#374151] mb-1.5">
+              Mot de passe
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              placeholder="••••••••"
+              className="w-full px-3 py-2.5 text-sm border border-[#E5E7EB] rounded-lg text-[#1F2937] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#6199C1]/20 focus:border-[#6199C1]/40 transition-colors"
+            />
+          </div>
+
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-[#6199C1] hover:bg-[#6199C1]/90 disabled:opacity-50 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-sm cursor-pointer"
+          >
+            {loading ? 'Connexion…' : 'Se connecter'}
+          </button>
+        </form>
       </div>
     </div>
   )

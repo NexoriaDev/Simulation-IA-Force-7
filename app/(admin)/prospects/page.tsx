@@ -1,19 +1,23 @@
 ﻿'use client'
 
-import { Suspense } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Search, Eye, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { MOCK_PROSPECTS, getCatalogueFormation } from '@/lib/data/mock'
+import { createClient } from '@/lib/supabase/client'
 import {
   STATUT_DOSSIER_CONFIG,
   FINANCEMENT_CONFIG,
   getTypeDossier,
   formatRelativeDate,
 } from '@/lib/utils/format'
-import type { StatutDossier } from '@/lib/types'
+import type { StatutDossier, ProspectClient } from '@/lib/types'
+
+type ProspectRow = ProspectClient & {
+  catalogue_formations: { intitule: string } | null
+}
 
 const STATUT_OPTIONS: { value: StatutDossier | ''; label: string }[] = [
   { value: '', label: 'Tous les statuts' },
@@ -69,6 +73,16 @@ function StatusPill({ statut }: { statut: StatutDossier }) {
 function ProspectsPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [allProspects, setAllProspects] = useState<ProspectRow[]>([])
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from('prospects_clients')
+      .select('*, catalogue_formations(intitule)')
+      .order('updated_at', { ascending: false })
+      .then(({ data }) => setAllProspects((data ?? []) as ProspectRow[]))
+  }, [])
 
   const q = searchParams.get('q') ?? ''
   const statut = (searchParams.get('statut') ?? '') as StatutDossier | ''
@@ -81,7 +95,7 @@ function ProspectsPageInner() {
     router.push(`?${params.toString()}`, { scroll: false })
   }
 
-  const prospects = MOCK_PROSPECTS.filter((p) => {
+  const prospects = allProspects.filter((p) => {
     if (statut && p.statut !== statut) return false
     if (type && getTypeDossier(p.statut) !== type) return false
     if (q.trim()) {
@@ -106,7 +120,7 @@ function ProspectsPageInner() {
           <h1 className="text-2xl font-bold text-[#1F2937]">Prospects & Clients</h1>
           <div className="w-8 h-0.5 bg-[#FEE700] mt-1.5 mb-2" />
           <p className="text-sm text-[#9CA3AF]">
-            {prospects.length} dossier{prospects.length > 1 ? 's' : ''} · prospects et clients en cours
+            {allProspects.length === 0 ? 'Chargement…' : `${prospects.length} dossier${prospects.length > 1 ? 's' : ''} · prospects et clients en cours`}
           </p>
         </div>
       </div>
@@ -183,12 +197,11 @@ function ProspectsPageInner() {
                 {prospects.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-5 py-12 text-center text-sm text-[#9CA3AF]">
-                      Aucun dossier correspondant
+                      {allProspects.length === 0 ? 'Chargement…' : 'Aucun dossier correspondant'}
                     </td>
                   </tr>
                 ) : (
                   prospects.map((p, i) => {
-                    const formation = getCatalogueFormation(p.formation_souhaitee ?? '')
                     const financement = FINANCEMENT_CONFIG[p.type_financement]
                     return (
                       <motion.tr
@@ -210,7 +223,7 @@ function ProspectsPageInner() {
 
                         <td className="px-5 py-5">
                           <p className="text-[#1F2937] truncate max-w-[160px] leading-tight">
-                            {formation?.intitule ?? '—'}
+                            {p.catalogue_formations?.intitule ?? '—'}
                           </p>
                           {p.type_formation && (
                             <span

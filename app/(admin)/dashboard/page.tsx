@@ -1,6 +1,6 @@
-﻿'use client'
+'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
@@ -12,19 +12,17 @@ import {
   Search,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import {
-  MOCK_PROSPECTS,
-  MOCK_NOTIFICATIONS,
-  MOCK_SESSIONS,
-  MOCK_URGENCES,
-  getCatalogueFormation,
-} from '@/lib/data/mock'
+import { createClient } from '@/lib/supabase/client'
 import {
   STATUT_DOSSIER_CONFIG,
   FINANCEMENT_CONFIG,
   formatRelativeDate,
 } from '@/lib/utils/format'
-import type { StatutDossier } from '@/lib/types'
+import type { StatutDossier, ProspectClient } from '@/lib/types'
+
+type ProspectRow = ProspectClient & {
+  catalogue_formations: { intitule: string } | null
+}
 
 // ─── Metric card ──────────────────────────────────────────────────────────────
 
@@ -89,30 +87,24 @@ const FILTER_TABS = [
 
 type FilterKey = (typeof FILTER_TABS)[number]['key']
 
-function filterProspects(filter: FilterKey, search: string, typeFilter: string) {
-  let list = MOCK_PROSPECTS
+function filterProspects(list: ProspectRow[], filter: FilterKey, search: string, typeFilter: string) {
+  let result = list
 
   if (filter === 'actifs') {
-    list = list.filter(
-      (p) =>
-        p.statut !== 'prospect_perdu' &&
-        p.statut !== 'valide'
-    )
+    result = result.filter((p) => p.statut !== 'prospect_perdu' && p.statut !== 'valide')
   } else if (filter === 'gagne') {
-    list = list.filter(
-      (p) => p.statut === 'prospect_gagne' || p.statut === 'valide'
-    )
+    result = result.filter((p) => p.statut === 'prospect_gagne' || p.statut === 'valide')
   } else if (filter === 'perdu') {
-    list = list.filter((p) => p.statut === 'prospect_perdu')
+    result = result.filter((p) => p.statut === 'prospect_perdu')
   }
 
   if (typeFilter) {
-    list = list.filter((p) => p.type_formation === typeFilter)
+    result = result.filter((p) => p.type_formation === typeFilter)
   }
 
   if (search.trim()) {
     const q = search.toLowerCase()
-    list = list.filter(
+    result = result.filter(
       (p) =>
         p.nom_entreprise.toLowerCase().includes(q) ||
         p.contact_nom.toLowerCase().includes(q) ||
@@ -120,7 +112,7 @@ function filterProspects(filter: FilterKey, search: string, typeFilter: string) 
     )
   }
 
-  return [...list].sort(
+  return [...result].sort(
     (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
   )
 }
@@ -131,15 +123,28 @@ export default function DashboardPage() {
   const [activeFilter, setActiveFilter] = useState<FilterKey>('tous')
   const [typeFilter, setTypeFilter] = useState('')
   const [search, setSearch] = useState('')
+  const [allProspects, setAllProspects] = useState<ProspectRow[]>([])
+  const [notifCount, setNotifCount] = useState(0)
+  const [sessionCount, setSessionCount] = useState(0)
 
-  const notifCount = MOCK_NOTIFICATIONS.filter((n) => !n.lu).length
-  const sessionsEnCours = MOCK_SESSIONS.length
-  const urgents = Object.values(MOCK_URGENCES).filter(Boolean).length
-  const actifs = MOCK_PROSPECTS.filter(
-    (p) => p.statut !== 'prospect_perdu'
-  ).length
+  useEffect(() => {
+    const supabase = createClient()
+    Promise.all([
+      supabase
+        .from('prospects_clients')
+        .select('*, catalogue_formations(intitule)')
+        .order('updated_at', { ascending: false }),
+      supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('lu', false),
+      supabase.from('sessions_formation').select('id', { count: 'exact', head: true }),
+    ]).then(([{ data: p }, { count: n }, { count: s }]) => {
+      setAllProspects((p ?? []) as ProspectRow[])
+      setNotifCount(n ?? 0)
+      setSessionCount(s ?? 0)
+    })
+  }, [])
 
-  const prospects = filterProspects(activeFilter, search, typeFilter)
+  const actifs = allProspects.filter((p) => p.statut !== 'prospect_perdu').length
+  const prospects = filterProspects(allProspects, activeFilter, search, typeFilter)
 
   return (
     <div className="min-h-full bg-[#F8F9FA]">
@@ -165,10 +170,10 @@ export default function DashboardPage() {
         {/* Metric cards */}
         <div className="grid grid-cols-3 gap-4">
           <MetricCard label="Dossiers actifs" value={actifs} icon={FolderOpen} delay={0} />
-          <MetricCard label="Sessions en cours" value={sessionsEnCours} icon={CalendarDays} delay={0.05} />
+          <MetricCard label="Sessions en cours" value={sessionCount} icon={CalendarDays} delay={0.05} />
           <MetricCard
             label="Dossiers urgents"
-            value={urgents}
+            value={0}
             icon={AlertTriangle}
             accent="bg-red-50 text-red-500"
             delay={0.1}
@@ -255,16 +260,14 @@ export default function DashboardPage() {
                 {prospects.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-5 py-10 text-center text-sm text-[#9CA3AF]">
-                      Aucun dossier trouvé
+                      {allProspects.length === 0 ? 'Chargement…' : 'Aucun dossier trouvé'}
                     </td>
                   </tr>
                 ) : (
                   prospects.map((p, i) => {
-                    const formation = getCatalogueFormation(p.formation_souhaitee ?? '')
                     const financement = p.type_financement
                       ? FINANCEMENT_CONFIG[p.type_financement]
                       : null
-                    const urgent = MOCK_URGENCES[p.id]
 
                     return (
                       <motion.tr
@@ -275,32 +278,21 @@ export default function DashboardPage() {
                         className="hover:bg-[#FAFAFA] transition-colors group"
                       >
                         <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-2.5">
-                            {urgent && (
-                              <span title="Urgence détectée par l'IA">
-                                <AlertTriangle
-                                  size={13}
-                                  className="text-[#DC2626] shrink-0"
-                                  strokeWidth={2}
-                                />
-                              </span>
-                            )}
-                            <div>
-                              <p className="font-medium text-[#1F2937] leading-tight">
-                                {p.nom_entreprise}
-                              </p>
-                              <p className="text-[11px] text-[#9CA3AF] leading-tight">
-                                {p.contact_prenom} {p.contact_nom}
-                                {p.contact_fonction ? ` · ${p.contact_fonction}` : ''}
-                              </p>
-                            </div>
+                          <div>
+                            <p className="font-medium text-[#1F2937] leading-tight">
+                              {p.nom_entreprise}
+                            </p>
+                            <p className="text-[11px] text-[#9CA3AF] leading-tight">
+                              {p.contact_prenom} {p.contact_nom}
+                              {p.contact_fonction ? ` · ${p.contact_fonction}` : ''}
+                            </p>
                           </div>
                         </td>
 
                         <td className="px-4 py-3.5">
                           <div>
                             <p className="text-[#1F2937] leading-tight truncate max-w-[180px]">
-                              {formation?.intitule ?? '—'}
+                              {p.catalogue_formations?.intitule ?? '—'}
                             </p>
                             <div className="mt-0.5">
                               {p.type_formation && (
