@@ -25,6 +25,7 @@ import {
   PenLine,
   Sparkles,
   MessageSquare,
+  Eye,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -430,6 +431,7 @@ function DocumentsTab({ documents }: { documents: any[] }) {
         {documents.map((doc, i) => {
           const typeLabel = TYPE_DOCUMENT_LABELS[doc.type_document as keyof typeof TYPE_DOCUMENT_LABELS] ?? doc.type_document
           const statutCfg = STATUT_DOCUMENT_CONFIG[doc.statut as keyof typeof STATUT_DOCUMENT_CONFIG]
+          const url = doc.url_stockage_plateforme
           return (
             <motion.div
               key={doc.id}
@@ -438,8 +440,8 @@ function DocumentsTab({ documents }: { documents: any[] }) {
               transition={{ delay: i * 0.06 }}
               className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#FAFAFA] transition-colors"
             >
-              <div className="p-2 rounded-lg bg-[#F3F4F6]">
-                <FileText size={16} className="text-[#6B7280]" strokeWidth={1.75} />
+              <div className="p-2 rounded-lg bg-[#EFF6FF]">
+                <FileText size={16} className="text-[#6199C1]" strokeWidth={1.75} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-[#1F2937]">{typeLabel}</p>
@@ -448,11 +450,31 @@ function DocumentsTab({ documents }: { documents: any[] }) {
               <span className={cn('text-[11px] font-medium px-2 py-0.5 rounded-md', statutCfg.bg, statutCfg.text)}>
                 {statutCfg.label}
               </span>
-              {doc.url_stockage_plateforme && (
-                <button className="p-1.5 rounded-lg hover:bg-[#F3F4F6] text-[#9CA3AF] hover:text-[#6B7280] transition-colors cursor-pointer" aria-label="Télécharger">
-                  <Download size={14} />
-                </button>
-              )}
+              <div className="flex items-center gap-1 shrink-0">
+                {url ? (
+                  <>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 rounded-lg hover:bg-[#EFF6FF] text-[#9CA3AF] hover:text-[#6199C1] transition-colors"
+                      aria-label="Ouvrir"
+                    >
+                      <Eye size={14} />
+                    </a>
+                    <a
+                      href={url}
+                      download
+                      className="p-1.5 rounded-lg hover:bg-[#EFF6FF] text-[#9CA3AF] hover:text-[#6199C1] transition-colors"
+                      aria-label="Télécharger"
+                    >
+                      <Download size={14} />
+                    </a>
+                  </>
+                ) : (
+                  <span className="text-[10px] text-[#D1D5DB] px-2">—</span>
+                )}
+              </div>
             </motion.div>
           )
         })}
