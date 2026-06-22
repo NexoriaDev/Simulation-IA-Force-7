@@ -74,13 +74,13 @@ const STATUT_TO_STEP: Partial<Record<StatutDossier, number>> = {
 
 const TL_N = STEPS.length    // 13
 const TL_W = 220             // px per step column
-const TL_BAR_Y = 145         // bar center Y from container top
-const TL_BAR_H = 6
-const TL_PIN_W = 32
-const TL_PIN_H = 44          // pin tip at TL_BAR_Y
-const TL_ICON = 64
+const TL_BAR_Y = 160         // bar center Y from container top
+const TL_BAR_H = 12
+const TL_PIN_W = 48
+const TL_PIN_H = 66          // pin tip at TL_BAR_Y
+const TL_ICON = 52
 const TL_POINT = 20          // point-avancement diameter
-const TL_H = 222             // total container height
+const TL_H = 268             // total container height
 
 function StatusStepper({ statut }: { statut: StatutDossier }) {
   const isPerdu = statut === 'prospect_perdu'
@@ -103,9 +103,9 @@ function StatusStepper({ statut }: { statut: StatutDossier }) {
     scrollRef.current?.scrollBy({ left: dir * TL_W * 3, behavior: 'smooth' })
   }
 
-  const pinTop = TL_BAR_Y - TL_PIN_H
+  const pinTop = TL_BAR_Y - TL_PIN_H / 2          // pin center on bar
   const iconTop = pinTop - 8 - TL_ICON
-  const labelTop = TL_BAR_Y + TL_BAR_H / 2 + 10
+  const labelTop = TL_BAR_Y + TL_PIN_H / 2 + 8   // below pin tip
 
   return (
     <div className="select-none">
@@ -144,7 +144,7 @@ function StatusStepper({ statut }: { statut: StatutDossier }) {
 
             {/* Blue fill */}
             <motion.div
-              className="absolute rounded-full bg-[#1267A4]"
+              className="absolute rounded-full bg-[#6199C1]"
               style={{ top: TL_BAR_Y - TL_BAR_H / 2, left: barLeft, height: TL_BAR_H, zIndex: 2 }}
               initial={{ width: 0 }}
               animate={{ width: fillWidth }}
