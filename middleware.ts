@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
-// ponytail: auth bypassed for dev/demo — réactiver quand le flow login est finalisé
 export function middleware(request: NextRequest) {
-  return NextResponse.next({ request })
+  const response = NextResponse.next({ request })
+  // ponytail: auth bypassed for dev/demo — réactiver quand le flow login est finalisé
+  return response
 }
 
 export const config = {
