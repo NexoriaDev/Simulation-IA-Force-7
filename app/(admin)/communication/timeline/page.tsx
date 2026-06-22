@@ -253,7 +253,7 @@ export default function TimelineEmailsPage() {
                       style={{ left: i * TL_W, width: TL_W, top: 0, height: COMM_H, zIndex: 10 }}>
 
                       {/* Crayon + corbeille (survol) */}
-                      <div className="absolute flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      <div className="absolute flex gap-1"
                         style={{ top: ICON_TOP, right: 6, zIndex: 20 }}>
                         <button onClick={() => openEdit(etape)}
                           className="w-6 h-6 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center text-[#1267A4] hover:bg-[#1267A4] hover:text-white transition-colors cursor-pointer">
@@ -286,27 +286,35 @@ export default function TimelineEmailsPage() {
                       </p>
 
                       {/* Mini-carte email */}
-                      <button
-                        onClick={() => openEdit(etape)}
-                        className="absolute left-2 right-2 rounded-xl border border-gray-100 bg-gray-50 hover:border-[#6199C1]/50 hover:bg-[#EEF4FB] transition-colors p-2 text-left cursor-pointer"
-                        style={{ top: CARD_TOP, height: CARD_H }}>
-                        {tpl ? (
-                          <>
-                            <div className="flex items-start gap-1.5 mb-1.5">
-                              <Mail size={9} className="text-gray-400 shrink-0 mt-0.5" />
-                              <p className="text-[9px] text-gray-600 leading-tight line-clamp-2 flex-1">{tpl.objet}</p>
-                            </div>
-                            <span className={cn(
-                              'inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-semibold',
-                              tpl.mode === 'automatique' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                            )}>
-                              {tpl.mode === 'automatique' ? 'Automatique' : 'À valider'}
-                            </span>
-                          </>
-                        ) : (
-                          <p className="text-[9px] text-gray-400 italic">Pas d'email</p>
-                        )}
-                      </button>
+                      {/* Bulle callout */}
+                      <div className="absolute left-2 right-2" style={{ top: CARD_TOP - 14 }}>
+                        {/* Pointe triangulaire (double couche = effet bordure) */}
+                        <div className="flex justify-center" style={{ height: 14, position: 'relative' }}>
+                          <span style={{ position: 'absolute', bottom: 0, width: 0, height: 0, borderLeft: '13px solid transparent', borderRight: '13px solid transparent', borderBottom: '14px solid #6199C1' }} />
+                          <span style={{ position: 'absolute', bottom: 1, width: 0, height: 0, borderLeft: '12px solid transparent', borderRight: '12px solid transparent', borderBottom: '13px solid white' }} />
+                        </div>
+                        <button
+                          onClick={() => openEdit(etape)}
+                          className="w-full rounded-xl border border-[#6199C1]/40 bg-white hover:border-[#1267A4]/60 hover:bg-[#EEF4FB] transition-colors p-2 text-left cursor-pointer"
+                          style={{ height: CARD_H }}>
+                          {tpl ? (
+                            <>
+                              <div className="flex items-start gap-1.5 mb-1.5">
+                                <Mail size={9} className="text-gray-400 shrink-0 mt-0.5" />
+                                <p className="text-[9px] text-[#1267A4] leading-tight line-clamp-2 flex-1">{tpl.objet}</p>
+                              </div>
+                              <span className={cn(
+                                'inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-semibold',
+                                tpl.mode === 'automatique' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                              )}>
+                                {tpl.mode === 'automatique' ? 'Automatique' : 'À valider'}
+                              </span>
+                            </>
+                          ) : (
+                            <p className="text-[9px] text-gray-400 italic">Pas d'email</p>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   )
                 })}
