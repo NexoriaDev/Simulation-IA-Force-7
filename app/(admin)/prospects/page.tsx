@@ -9,9 +9,7 @@ import { cn } from '@/lib/utils'
 
 import {
   STATUT_DOSSIER_CONFIG,
-  FINANCEMENT_CONFIG,
   getTypeDossier,
-  formatRelativeDate,
 } from '@/lib/utils/format'
 import type { StatutDossier, ProspectClient } from '@/lib/types'
 
@@ -30,24 +28,6 @@ const STATUT_OPTIONS: { value: StatutDossier | ''; label: string }[] = [
   { value: 'valide', label: 'Validé' },
   { value: 'prospect_perdu', label: 'Prospect perdu' },
 ]
-
-function TypeBadge({ statut }: { statut: StatutDossier }) {
-  const type = getTypeDossier(statut)
-  return (
-    <span
-      className={cn(
-        'text-[10px] font-semibold px-1.5 py-0.5 rounded border',
-        type === 'Client'
-          ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-          : type === 'Perdu'
-            ? 'bg-red-50 text-red-600 border-red-200'
-            : 'bg-gray-50 text-gray-600 border-gray-200'
-      )}
-    >
-      {type}
-    </span>
-  )
-}
 
 // ponytail: 3 couleurs max — gris neutre / vert (gagné) / rouge (perdu)
 const STATUT_PILL_STYLE: Record<StatutDossier, string> = {
@@ -173,12 +153,11 @@ function ProspectsPageInner() {
               <thead>
                 <tr className="bg-[#F8F9FA] border-b border-[#E5E7EB]">
                   {[
-                    'Entreprise / Contact',
+                    'Nom complet',
+                    'Entreprise',
                     'Formation',
-                    'Statut',
-                    'Type',
-                    'Financement',
-                    'Dernière activité',
+                    'Statut formation',
+                    'Statut dossier',
                     '',
                   ].map((h) => (
                     <th
@@ -193,13 +172,12 @@ function ProspectsPageInner() {
               <tbody className="divide-y divide-[#F3F4F6]">
                 {prospects.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center text-sm text-[#9CA3AF]">
+                    <td colSpan={6} className="px-5 py-12 text-center text-sm text-[#9CA3AF]">
                       {allProspects.length === 0 ? 'Chargement…' : 'Aucun dossier correspondant'}
                     </td>
                   </tr>
                 ) : (
                   prospects.map((p, i) => {
-                    const financement = FINANCEMENT_CONFIG[p.type_financement]
                     return (
                       <motion.tr
                         key={p.id}
@@ -210,56 +188,35 @@ function ProspectsPageInner() {
                       >
                         <td className="px-5 py-5">
                           <p className="font-medium text-[#1F2937] leading-tight">
-                            {p.nom_entreprise}
-                          </p>
-                          <p className="text-[11px] text-[#9CA3AF] leading-tight">
                             {p.contact_prenom} {p.contact_nom}
-                            {p.contact_fonction ? ` · ${p.contact_fonction}` : ''}
                           </p>
+                        </td>
+
+                        <td className="px-5 py-5">
+                          <p className="text-[#1F2937] leading-tight">{p.nom_entreprise}</p>
                         </td>
 
                         <td className="px-5 py-5">
                           <p className="text-[#1F2937] truncate max-w-[160px] leading-tight">
                             {p.catalogue_formations?.intitule ?? '—'}
                           </p>
-                          {p.type_formation && (
-                            <span
-                              className={cn(
-                                'text-[10px] font-semibold px-1.5 py-0.5 rounded mt-0.5 inline-block',
-                                p.type_formation === 'INTER'
-                                  ? 'bg-violet-50 text-violet-700'
-                                  : 'bg-[#6199C1]/8 text-[#6199C1]'
-                              )}
-                            >
+                        </td>
+
+                        <td className="px-5 py-5">
+                          {p.type_formation ? (
+                            <span className={cn(
+                              'text-[10px] font-semibold px-1.5 py-0.5 rounded',
+                              p.type_formation === 'INTER'
+                                ? 'bg-violet-50 text-violet-700'
+                                : 'bg-[#6199C1]/8 text-[#6199C1]'
+                            )}>
                               {p.type_formation}
                             </span>
-                          )}
+                          ) : <span className="text-[#9CA3AF] text-[11px]">—</span>}
                         </td>
 
                         <td className="px-5 py-5">
                           <StatusPill statut={p.statut} />
-                        </td>
-
-                        <td className="px-5 py-5">
-                          <TypeBadge statut={p.statut} />
-                        </td>
-
-                        <td className="px-5 py-5">
-                          <span
-                            className={cn(
-                              'text-[11px] px-2 py-0.5 rounded-md font-medium',
-                              financement.bg,
-                              financement.text
-                            )}
-                          >
-                            {financement.label}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-5">
-                          <p className="text-[12px] text-[#6B7280]">
-                            {formatRelativeDate(p.updated_at)}
-                          </p>
                         </td>
 
                         <td className="px-5 py-5">
