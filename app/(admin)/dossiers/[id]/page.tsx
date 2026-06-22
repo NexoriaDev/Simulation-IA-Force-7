@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, useRef, use } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -26,11 +26,12 @@ import {
   Sparkles,
   MessageSquare,
   Eye,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   STATUT_DOSSIER_CONFIG,
-  STATUTS_DOSSIER_ORDER,
   STATUT_COLLECTE_CONFIG,
   FINANCEMENT_CONFIG,
   TYPE_DOCUMENT_LABELS,
@@ -43,87 +44,189 @@ import {
 import type { StatutDossier, Apprenant } from '@/lib/types'
 import type { MilestoneState } from '@/lib/utils/format'
 
-// ─── Status stepper ───────────────────────────────────────────────────────────
+// ─── Progress bar scrollable (13 étapes) ─────────────────────────────────────
+
+const STEPS: { label: string; icon: string }[] = [
+  { label: 'Profil créé', icon: 'icon-profil-cree.png' },
+  { label: 'Devis en attente', icon: 'icon-devis-attente.png' },
+  { label: 'Devis généré', icon: 'icon-devis-genere.png' },
+  { label: 'Devis envoyé', icon: 'icon-devis-envoye.png' },
+  { label: 'Devis signé', icon: 'icon-devis-signe.png' },
+  { label: 'Prospect gagné', icon: 'icon-prospect-gagne.png' },
+  { label: 'Validé', icon: 'icon-valide.png' },
+  { label: 'Profil Keypredict créé', icon: 'icon-keypredict-cree.png' },
+  { label: 'Tests générés', icon: 'icon-tests-generes.png' },
+  { label: 'Tests envoyés', icon: 'icon-tests-envoyes.png' },
+  { label: 'Profil Edusign créé', icon: 'icon-edusign-cree.png' },
+  { label: 'Attestation de fin de formation générée', icon: 'icon-attestation-generee.png' },
+  { label: 'Attestation de fin de formation envoyée', icon: 'icon-attestation-envoyee.png' },
+]
+
+const STATUT_TO_STEP: Partial<Record<StatutDossier, number>> = {
+  profil_cree: 0,
+  devis_en_attente: 1,
+  devis_genere: 2,
+  devis_envoye: 3,
+  devis_signe: 4,
+  prospect_gagne: 5,
+  valide: 6,
+}
+
+const TL_N = STEPS.length    // 13
+const TL_W = 220             // px per step column
+const TL_BAR_Y = 145         // bar center Y from container top
+const TL_BAR_H = 6
+const TL_PIN_W = 32
+const TL_PIN_H = 44          // pin tip at TL_BAR_Y
+const TL_ICON = 64
+const TL_POINT = 20          // point-avancement diameter
+const TL_H = 222             // total container height
 
 function StatusStepper({ statut }: { statut: StatutDossier }) {
   const isPerdu = statut === 'prospect_perdu'
-  const currentStep = STATUTS_DOSSIER_ORDER.indexOf(statut)
+  const stepIdx = isPerdu ? 0 : (STATUT_TO_STEP[statut] ?? 0)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // blue fill: ends at midpoint between last past step and current step
+  const fillWidth = isPerdu ? 0 : Math.max(0, stepIdx * TL_W - TL_W / 2)
+  const barLeft = TL_W / 2
+  const barWidth = (TL_N - 1) * TL_W
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    // center the current step in the viewport
+    el.scrollLeft = TL_W * (stepIdx + 0.5) - el.clientWidth / 2
+  }, [stepIdx])
+
+  const scroll = (dir: 1 | -1) => {
+    scrollRef.current?.scrollBy({ left: dir * TL_W * 3, behavior: 'smooth' })
+  }
+
+  const pinTop = TL_BAR_Y - TL_PIN_H
+  const iconTop = pinTop - 8 - TL_ICON
+  const labelTop = TL_BAR_Y + TL_BAR_H / 2 + 10
 
   return (
-    <div className="relative">
-      <div className="flex items-start gap-0">
-        {STATUTS_DOSSIER_ORDER.map((step, i) => {
-          const isCompleted = !isPerdu && currentStep > i
-          const isCurrent = !isPerdu && currentStep === i
+    <div className="select-none">
+      <div className="relative">
+        {/* Left arrow */}
+        <button
+          onClick={() => scroll(-1)}
+          className="absolute left-0 z-10 w-8 h-8 rounded-full bg-white shadow border border-[#E5E7EB] flex items-center justify-center text-[#9CA3AF] hover:text-[#1267A4] hover:border-[#1267A4] transition-colors cursor-pointer"
+          style={{ top: TL_BAR_Y - 16 }}
+        >
+          <ChevronLeft size={16} />
+        </button>
 
-          return (
-            <div key={step} className="flex items-start flex-1">
-              <div className="flex flex-col items-center">
-                <motion.div
-                  initial={{ scale: 0.7, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.25, delay: i * 0.06 }}
-                  className={cn(
-                    'w-7 h-7 rounded-full flex items-center justify-center border-2 shrink-0 z-10',
-                    isCompleted
-                      ? 'bg-[#16A34A] border-[#16A34A] text-white'
-                      : isCurrent
-                        ? 'bg-[#6199C1] border-[#6199C1] text-white shadow-[0_0_0_4px_rgba(97,153,193,0.15)]'
-                        : 'bg-white border-[#D1D5DB] text-[#9CA3AF]'
-                  )}
-                >
-                  {isCompleted ? (
-                    <Check size={12} strokeWidth={2.5} />
-                  ) : (
-                    <span className="text-[11px] font-semibold">{i + 1}</span>
-                  )}
-                </motion.div>
-                <span
-                  className={cn(
-                    'text-[10px] text-center leading-tight mt-2 max-w-[64px] px-1',
-                    isCurrent
-                      ? 'text-[#6199C1] font-semibold'
-                      : isCompleted
-                        ? 'text-[#6B7280]'
-                        : 'text-[#9CA3AF]'
-                  )}
-                >
-                  {STATUT_DOSSIER_CONFIG[step].label}
-                </span>
+        {/* Right arrow */}
+        <button
+          onClick={() => scroll(1)}
+          className="absolute right-0 z-10 w-8 h-8 rounded-full bg-white shadow border border-[#E5E7EB] flex items-center justify-center text-[#9CA3AF] hover:text-[#1267A4] hover:border-[#1267A4] transition-colors cursor-pointer"
+          style={{ top: TL_BAR_Y - 16 }}
+        >
+          <ChevronRight size={16} />
+        </button>
+
+        {/* Scroll area */}
+        <div
+          ref={scrollRef}
+          className="overflow-x-auto mx-10 [&::-webkit-scrollbar]:hidden"
+          style={{ scrollbarWidth: 'none' }}
+        >
+          <div className="relative" style={{ width: TL_N * TL_W, height: TL_H }}>
+
+            {/* Gray bar */}
+            <div
+              className="absolute rounded-full bg-[#E5E7EB]"
+              style={{ top: TL_BAR_Y - TL_BAR_H / 2, left: barLeft, width: barWidth, height: TL_BAR_H, zIndex: 1 }}
+            />
+
+            {/* Blue fill */}
+            <motion.div
+              className="absolute rounded-full bg-[#1267A4]"
+              style={{ top: TL_BAR_Y - TL_BAR_H / 2, left: barLeft, height: TL_BAR_H, zIndex: 2 }}
+              initial={{ width: 0 }}
+              animate={{ width: fillWidth }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+            />
+
+            {/* point-avancement (transition marker) */}
+            {!isPerdu && stepIdx > 0 && (
+              <div
+                className="absolute"
+                style={{
+                  top: TL_BAR_Y - TL_POINT / 2,
+                  left: barLeft + fillWidth - TL_POINT / 2,
+                  width: TL_POINT,
+                  height: TL_POINT,
+                  zIndex: 6,
+                }}
+              >
+                <img src="/images/timeline-icons/point-avancement.png" alt="" width={TL_POINT} height={TL_POINT} style={{ objectFit: 'contain' }} />
               </div>
+            )}
 
-              {i < STATUTS_DOSSIER_ORDER.length - 1 && (
-                <div className="flex-1 mt-3.5 mx-1 relative">
-                  <motion.div
-                    className={cn('h-0.5 w-full', isCompleted ? 'bg-[#16A34A]' : 'bg-[#E5E7EB]')}
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ duration: 0.3, delay: i * 0.06 }}
-                    style={{ transformOrigin: 'left' }}
-                  />
-                  {step === 'prospect_gagne' && (
-                    <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-[8px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                      → Client
-                    </span>
-                  )}
+            {/* Steps */}
+            {STEPS.map(({ label, icon }, i) => {
+              const isPast = !isPerdu && i < stepIdx
+              const isCurrent = !isPerdu && i === stepIdx
+              const pinImg = isPast ? 'pin-atteint.png' : 'pin-non-atteint.png'
+              const labelColor = isPast ? '#1267A4' : isCurrent ? '#1F2937' : '#9CA3AF'
+              const labelWeight = isPast || isCurrent ? 700 : 400
+
+              return (
+                <div
+                  key={i}
+                  className="absolute"
+                  style={{ left: i * TL_W, width: TL_W, top: 0, height: TL_H, zIndex: 10 }}
+                >
+                  {/* Illustrated icon */}
+                  <div
+                    className="absolute flex items-center justify-center"
+                    style={{ top: iconTop, left: '50%', transform: 'translateX(-50%)', width: TL_ICON, height: TL_ICON }}
+                  >
+                    <img
+                      src={`/images/timeline-icons/${icon}`}
+                      alt={label}
+                      width={TL_ICON}
+                      height={TL_ICON}
+                      style={{ objectFit: 'contain', opacity: isPast || isCurrent ? 1 : 0.3 }}
+                    />
+                  </div>
+
+                  {/* Pin marker */}
+                  <div
+                    className="absolute"
+                    style={{ top: pinTop, left: '50%', transform: 'translateX(-50%)', width: TL_PIN_W, height: TL_PIN_H }}
+                  >
+                    <img src={`/images/timeline-icons/${pinImg}`} alt="" width={TL_PIN_W} height={TL_PIN_H} style={{ objectFit: 'contain' }} />
+                  </div>
+
+                  {/* Label */}
+                  <p
+                    className="absolute text-center leading-snug"
+                    style={{ top: labelTop, left: 6, right: 6, fontSize: 12, color: labelColor, fontWeight: labelWeight }}
+                  >
+                    {label}
+                  </p>
                 </div>
-              )}
-            </div>
-          )
-        })}
+              )
+            })}
+          </div>
+        </div>
       </div>
 
       {isPerdu && (
-        <div className="mt-3 flex items-center gap-2 text-[#DC2626]">
-          <X size={14} strokeWidth={2} />
-          <span className="text-sm font-medium">Prospect perdu</span>
+        <div className="mt-3 flex items-center gap-1.5 text-[#DC2626]">
+          <X size={13} strokeWidth={2} />
+          <span className="text-xs font-medium">Prospect perdu</span>
         </div>
       )}
-
       {!isPerdu && (
-        <div className="mt-3 flex items-center gap-1.5 text-[#9CA3AF]">
-          <X size={11} strokeWidth={1.75} />
-          <span className="text-[11px]">Prospect perdu (branche alternative)</span>
+        <div className="mt-2 flex items-center gap-1 text-[#D1D5DB]">
+          <X size={10} strokeWidth={1.5} />
+          <span className="text-[10px]">Prospect perdu (branche alternative)</span>
         </div>
       )}
     </div>
