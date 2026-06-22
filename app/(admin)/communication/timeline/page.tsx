@@ -20,17 +20,18 @@ const COMM_H    = CARD_TOP + CARD_H + 20                  // 372
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type ModeEmail   = 'automatique' | 'a_valider'
-type RelanceForm = { objet: string; corps: string; delai_jours: number }
+type DelaiUnite  = 'jours' | 'heures'
+type RelanceForm = { objet: string; corps: string; delai_jours: number; delai_unite: DelaiUnite }
 type Relance     = RelanceForm & { id: string; ordre: number }
 type Template    = { id: string; etape_id: string; objet: string; corps: string; mode: ModeEmail; relances: Relance[] }
 type Etape       = { id: string; ordre: number; nom: string; branche: string | null; templates_email: Template[] }
-type FormState   = { nom: string; objet: string; corps: string; mode: ModeEmail; relances: RelanceForm[]; delaiJours: number }
+type FormState   = { nom: string; objet: string; corps: string; mode: ModeEmail; relances: RelanceForm[]; delaiJours: number; delaiUnite: DelaiUnite }
 type ModalMode   =
   | { type: 'create'; insertAfterOrdre: number }
   | { type: 'edit'; etape: Etape }
   | { type: 'config-email'; etape: Etape }
 
-const EMPTY_FORM: FormState = { nom: '', objet: '', corps: '', mode: 'automatique', relances: [], delaiJours: 7 }
+const EMPTY_FORM: FormState = { nom: '', objet: '', corps: '', mode: 'automatique', relances: [], delaiJours: 7, delaiUnite: 'jours' }
 
 // ─── Mutation helper ──────────────────────────────────────────────────────────
 
@@ -95,14 +96,20 @@ export default function TimelineEmailsPage() {
 
   function openEdit(etape: Etape) {
     const tpl = etape.templates_email[0]
-    const relances = tpl?.relances.map(r => ({ objet: r.objet, corps: r.corps, delai_jours: r.delai_jours })) ?? []
+    const relances = tpl?.relances.map(r => ({
+      objet:       r.objet,
+      corps:       r.corps,
+      delai_jours: r.delai_jours,
+      delai_unite: (r.delai_unite ?? 'jours') as DelaiUnite,
+    })) ?? []
     setForm({
       nom:        etape.nom,
       objet:      tpl?.objet ?? '',
       corps:      tpl?.corps ?? '',
       mode:       tpl?.mode ?? 'automatique',
       relances,
-      delaiJours: relances[0]?.delai_jours ?? 7,
+      delaiJours:  relances[0]?.delai_jours ?? 7,
+      delaiUnite:  relances[0]?.delai_unite ?? 'jours',
     })
     setModal({ type: 'edit', etape })
   }
@@ -172,7 +179,7 @@ export default function TimelineEmailsPage() {
     setForm(f => ({
       ...f,
       relances: c > f.relances.length
-        ? [...f.relances, ...Array(c - f.relances.length).fill(null).map(() => ({ objet: '', corps: '', delai_jours: f.delaiJours }))]
+        ? [...f.relances, ...Array(c - f.relances.length).fill(null).map(() => ({ objet: '', corps: '', delai_jours: f.delaiJours, delai_unite: f.delaiUnite }))]
         : f.relances.slice(0, c),
     }))
   }
@@ -425,10 +432,10 @@ export default function TimelineEmailsPage() {
                     </div>
 
                     <div className="border-t border-gray-100 pt-3">
-                      <div className="flex items-center gap-4 mb-3">
+                      <div className="flex items-center flex-wrap gap-x-4 gap-y-2 mb-3">
                         <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider shrink-0">Relances</p>
                         <div className="flex items-center gap-2 ml-auto">
-                          <span className="text-xs text-gray-500">Nombre :</span>
+                          <span className="text-xs text-gray-500">Nb de relances :</span>
                           <input type="number" min={0} max={5} value={form.relances.length}
                             onChange={e => setRelancesCount(parseInt(e.target.value) || 0)}
                             className="w-12 px-2 py-1 rounded-lg border border-gray-200 text-sm text-center focus:outline-none focus:border-[#1267A4] transition-colors" />
@@ -441,8 +448,16 @@ export default function TimelineEmailsPage() {
                                 const d = parseInt(e.target.value) || 1
                                 setForm(f => ({ ...f, delaiJours: d, relances: f.relances.map(r => ({ ...r, delai_jours: d })) }))
                               }}
-                              className="w-12 px-2 py-1 rounded-lg border border-gray-200 text-sm text-center focus:outline-none focus:border-[#1267A4] transition-colors" />
-                            <span className="text-xs text-gray-500">j.</span>
+                              className="w-14 px-2 py-1 rounded-lg border border-gray-200 text-sm text-center focus:outline-none focus:border-[#1267A4] transition-colors" />
+                            <select value={form.delaiUnite}
+                              onChange={e => {
+                                const u = e.target.value as DelaiUnite
+                                setForm(f => ({ ...f, delaiUnite: u, relances: f.relances.map(r => ({ ...r, delai_unite: u })) }))
+                              }}
+                              className="px-2 py-1 rounded-lg border border-gray-200 text-xs text-gray-600 focus:outline-none focus:border-[#1267A4] transition-colors cursor-pointer bg-white">
+                              <option value="jours">jours</option>
+                              <option value="heures">heures</option>
+                            </select>
                           </div>
                         )}
                       </div>

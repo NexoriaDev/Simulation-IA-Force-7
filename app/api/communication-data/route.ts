@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       if (!newTpl) return NextResponse.json({ error: 'échec insert template' }, { status: 500 })
       if (relancesData?.length > 0) {
         await sb.from('relances').insert(
-          relancesData.map((r: { objet: string; corps: string; delai_jours: number }, i: number) => ({
+          relancesData.map((r: { objet: string; corps: string; delai_jours: number; delai_unite: string }, i: number) => ({
             template_email_id: newTpl.id, ordre: i + 1, ...r,
           }))
         )
@@ -94,7 +94,7 @@ export async function POST(req: Request) {
       await sb.from('relances').delete().eq('template_email_id', templateId)
       if (relancesData?.length > 0) {
         await sb.from('relances').insert(
-          relancesData.map((r: { objet: string; corps: string; delai_jours: number }, i: number) => ({
+          relancesData.map((r: { objet: string; corps: string; delai_jours: number; delai_unite: string }, i: number) => ({
             template_email_id: templateId, ordre: i + 1, ...r,
           }))
         )
