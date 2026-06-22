@@ -45,12 +45,14 @@ async function mutate(action: string, payload: Record<string, unknown>) {
 export default function TimelineEmailsPage() {
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const [etapes,  setEtapes]  = useState<Etape[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error,   setError]   = useState<string | null>(null)
-  const [modal,   setModal]   = useState<ModalMode | null>(null)
-  const [form,    setForm]    = useState<FormState>(EMPTY_FORM)
-  const [saving,  setSaving]  = useState(false)
+  const [etapes,        setEtapes]        = useState<Etape[]>([])
+  const [loading,       setLoading]       = useState(true)
+  const [error,         setError]         = useState<string | null>(null)
+  const [modal,         setModal]         = useState<ModalMode | null>(null)
+  const [form,          setForm]          = useState<FormState>(EMPTY_FORM)
+  const [saving,        setSaving]        = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<Etape | null>(null)
+  const [deleting,      setDeleting]      = useState(false)
 
   async function load() {
     setLoading(true)
@@ -100,13 +102,21 @@ export default function TimelineEmailsPage() {
     setModal({ type: 'edit', etape })
   }
 
-  async function handleDelete(etape: Etape) {
-    if (!window.confirm(`Supprimer l'étape "${etape.nom}" ?`)) return
+  function handleDelete(etape: Etape) {
+    setConfirmDelete(etape)
+  }
+
+  async function executeDelete() {
+    if (!confirmDelete) return
+    setDeleting(true)
     try {
-      await mutate('delete', { etapeId: etape.id, ordre: etape.ordre })
+      await mutate('delete', { etapeId: confirmDelete.id, ordre: confirmDelete.ordre })
+      setConfirmDelete(null)
       load()
     } catch (err) {
       alert(err instanceof Error ? err.message : String(err))
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -419,6 +429,50 @@ export default function TimelineEmailsPage() {
                   className="px-5 py-2 rounded-lg text-sm font-semibold bg-[#1267A4] text-white hover:bg-[#0f5390] disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-2">
                   {saving && <Loader2 size={14} className="animate-spin" />}
                   Enregistrer
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Modale confirmation suppression ──────────────────────────────────── */}
+      <AnimatePresence>
+        {confirmDelete && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(15,23,42,0.45)' }}
+            onClick={e => e.target === e.currentTarget && setConfirmDelete(null)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 10 }}
+              transition={{ duration: 0.16, ease: 'easeOut' }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+
+              <div className="px-6 pt-6 pb-4">
+                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center mb-4">
+                  <Trash2 size={18} className="text-red-500" />
+                </div>
+                <h2 className="text-base font-bold text-[#1F2937] mb-1">Supprimer cette étape ?</h2>
+                <p className="text-sm text-gray-500">
+                  L'étape <span className="font-semibold text-[#1F2937]">« {confirmDelete.nom} »</span> et son email associé seront définitivement supprimés.
+                </p>
+              </div>
+
+              <div className="px-6 pb-6 flex gap-3 justify-end">
+                <button
+                  onClick={() => setConfirmDelete(null)}
+                  className="px-4 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer">
+                  Annuler
+                </button>
+                <button
+                  onClick={executeDelete}
+                  disabled={deleting}
+                  className="px-5 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center gap-2">
+                  {deleting && <Loader2 size={14} className="animate-spin" />}
+                  Supprimer
                 </button>
               </div>
             </motion.div>
