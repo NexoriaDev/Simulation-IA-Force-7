@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { Suspense, useState, useEffect } from 'react'
+import { Suspense, useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
@@ -47,6 +47,73 @@ function StatusPill({ statut }: { statut: StatutDossier }) {
     <span className={cn('inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium border', STATUT_PILL_STYLE[statut])}>
       {cfg.label}
     </span>
+  )
+}
+
+const TYPE_OPTIONS = [
+  { value: '', label: 'Prospect & Client' },
+  { value: 'Prospect', label: 'Prospect' },
+  { value: 'Client', label: 'Client' },
+]
+
+function FilterDropdown({
+  icon: Icon,
+  value,
+  onChange,
+  options,
+  minW = 120,
+}: {
+  icon: React.ElementType
+  value: string
+  onChange: (v: string) => void
+  options: { value: string; label: string }[]
+  minW?: number
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const label = options.find(o => o.value === value)?.label ?? options[0].label
+
+  useEffect(() => {
+    if (!open) return
+    const close = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative flex items-stretch border-l border-[#E5E7EB]">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2 px-4 text-sm text-[#4B5563] hover:bg-[#F8F9FA] transition-colors cursor-pointer"
+      >
+        <Icon size={14} className="text-[#6199C1] shrink-0" />
+        <span className="whitespace-nowrap" style={{ minWidth: minW }}>{label}</span>
+        <ChevronDown size={13} className={cn('text-[#6199C1] shrink-0 transition-transform duration-150', open && 'rotate-180')} />
+      </button>
+
+      {open && (
+        <div className="absolute top-[calc(100%+6px)] left-0 min-w-[210px] bg-white rounded-xl shadow-lg border border-[#E5E7EB] py-1.5 z-50">
+          {options.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { onChange(opt.value); setOpen(false) }}
+              className={cn(
+                'w-full text-left px-4 py-2.5 text-sm transition-colors',
+                opt.value === value
+                  ? 'bg-[#6199C1]/15 text-[#6199C1] font-medium'
+                  : 'text-[#374151] hover:bg-[#F8F9FA]'
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -98,7 +165,7 @@ function ProspectsPageInner() {
 
       <div className="px-10 pb-8 space-y-4">
         {/* Bloc 1 : Recherche + filtres — un seul container avec dividers */}
-        <div className="flex items-stretch bg-white border border-[#6199C1]/25 rounded-xl shadow-sm overflow-hidden">
+        <div className="flex items-stretch bg-white border border-[#6199C1]/25 rounded-xl shadow-sm">
 
           {/* Champ de recherche */}
           <div className="relative flex-1">
@@ -112,40 +179,26 @@ function ProspectsPageInner() {
             />
           </div>
 
-          {/* Filtre statut */}
-          <div className="flex items-center gap-2 px-4 border-l border-[#E5E7EB] hover:bg-[#F8F9FA] transition-colors">
-            <ListFilter size={14} className="text-[#6199C1] shrink-0 pointer-events-none" />
-            <select
-              value={statut}
-              onChange={(e) => setParam('statut', e.target.value)}
-              className="text-sm text-[#4B5563] bg-transparent cursor-pointer focus:outline-none appearance-none min-w-[148px] py-3.5"
-            >
-              {STATUT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-            <ChevronDown size={13} className="text-[#6199C1] shrink-0 pointer-events-none" />
-          </div>
+          <FilterDropdown
+            icon={ListFilter}
+            value={statut}
+            onChange={(v) => setParam('statut', v)}
+            options={STATUT_OPTIONS}
+            minW={148}
+          />
 
-          {/* Filtre type */}
-          <div className="flex items-center gap-2 px-4 border-l border-[#E5E7EB] hover:bg-[#F8F9FA] transition-colors">
-            <Users size={14} className="text-[#6199C1] shrink-0 pointer-events-none" />
-            <select
-              value={type}
-              onChange={(e) => setParam('type', e.target.value)}
-              className="text-sm text-[#4B5563] bg-transparent cursor-pointer focus:outline-none appearance-none min-w-[128px] py-3.5"
-            >
-              <option value="">Prospect & Client</option>
-              <option value="Prospect">Prospect</option>
-              <option value="Client">Client</option>
-            </select>
-            <ChevronDown size={13} className="text-[#6199C1] shrink-0 pointer-events-none" />
-          </div>
+          <FilterDropdown
+            icon={Users}
+            value={type}
+            onChange={(v) => setParam('type', v)}
+            options={TYPE_OPTIONS}
+            minW={128}
+          />
 
           {hasFilters && (
             <button
               onClick={() => router.push('?', { scroll: false })}
-              className="flex items-center px-4 border-l border-[#E5E7EB] text-[#9CA3AF] hover:text-[#6B7280] hover:bg-[#F8F9FA] transition-colors cursor-pointer shrink-0"
+              className="flex items-center px-4 border-l border-[#E5E7EB] text-[#9CA3AF] hover:text-[#6B7280] hover:bg-[#F8F9FA] transition-colors cursor-pointer shrink-0 rounded-r-xl"
             >
               <X size={13} />
             </button>
