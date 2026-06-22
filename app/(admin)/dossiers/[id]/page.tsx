@@ -318,12 +318,60 @@ function ProfilField({ icon: Icon, label, children }: { icon: React.ElementType;
   )
 }
 
+function EditableField({ icon: Icon, label, value, onChange }: {
+  icon: React.ElementType
+  label: string
+  value: string
+  onChange: (v: string) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (editing) inputRef.current?.select()
+  }, [editing])
+
+  return (
+    <div className="group flex items-start gap-3">
+      <Icon size={15} className="text-[#9CA3AF] mt-0.5 shrink-0" strokeWidth={1.75} />
+      <div className="flex-1 min-w-0">
+        <p className="text-[11px] text-[#9CA3AF] mb-0.5">{label}</p>
+        {editing ? (
+          <input
+            ref={inputRef}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onBlur={() => setEditing(false)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setEditing(false) }}
+            className="text-sm text-[#1F2937] border-b border-[#6199C1] bg-transparent outline-none w-full pb-0.5"
+          />
+        ) : (
+          <div className="flex items-center gap-1.5 cursor-text" onClick={() => setEditing(true)}>
+            <span className="text-sm text-[#1F2937]">
+              {value || <span className="text-[#D1D5DB]">—</span>}
+            </span>
+            <PenLine size={11} className="text-[#C4CDD8] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function ProfilTab({ prospect }: { prospect: Record<string, any> }) {
   const p = prospect as any
   const formation = p.catalogue_formations as { intitule: string } | null
-  const financementCfg = p.type_financement
-    ? FINANCEMENT_CONFIG[p.type_financement as keyof typeof FINANCEMENT_CONFIG]
-    : null
+
+  const [fields, setFields] = useState({
+    contact_email: p.contact_email ?? '',
+    contact_telephone: p.contact_telephone ?? '',
+    contact_fonction: p.contact_fonction ?? '',
+    type_formation: p.type_formation ?? '',
+    type_financement: p.type_financement ?? '',
+    nombre_stagiaires_estime: p.nombre_stagiaires_estime?.toString() ?? '',
+    siret: p.siret ?? '',
+  })
+  const set = (k: keyof typeof fields) => (v: string) => setFields(f => ({ ...f, [k]: v }))
 
   return (
     <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
@@ -331,18 +379,9 @@ function ProfilTab({ prospect }: { prospect: Record<string, any> }) {
         {/* Colonne Contact */}
         <div className="p-6 space-y-5">
           <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest">Contact</p>
-          {p.contact_email && (
-            <ProfilField icon={Mail} label="Email">{p.contact_email}</ProfilField>
-          )}
-          {p.contact_telephone && (
-            <ProfilField icon={Phone} label="Téléphone">{p.contact_telephone}</ProfilField>
-          )}
-          {p.contact_fonction && (
-            <ProfilField icon={Briefcase} label="Fonction">{p.contact_fonction}</ProfilField>
-          )}
-          {!p.contact_email && !p.contact_telephone && !p.contact_fonction && (
-            <p className="text-sm text-[#9CA3AF]">Aucune information de contact</p>
-          )}
+          <EditableField icon={Mail} label="Email" value={fields.contact_email} onChange={set('contact_email')} />
+          <EditableField icon={Phone} label="Téléphone" value={fields.contact_telephone} onChange={set('contact_telephone')} />
+          <EditableField icon={Briefcase} label="Fonction" value={fields.contact_fonction} onChange={set('contact_fonction')} />
         </div>
 
         {/* Colonne Formation & dossier */}
@@ -351,35 +390,10 @@ function ProfilTab({ prospect }: { prospect: Record<string, any> }) {
           {formation && (
             <ProfilField icon={Briefcase} label="Formation souhaitée">{formation.intitule}</ProfilField>
           )}
-          {p.type_formation && (
-            <ProfilField icon={Users} label="Type">
-              <span
-                className={cn(
-                  'inline-block text-[11px] font-semibold px-2 py-0.5 rounded',
-                  p.type_formation === 'INTER'
-                    ? 'bg-violet-50 text-violet-700'
-                    : 'bg-[#6199C1]/8 text-[#6199C1]'
-                )}
-              >
-                {p.type_formation}
-              </span>
-            </ProfilField>
-          )}
-          {financementCfg && (
-            <ProfilField icon={FileText} label="Financement">
-              <span className={cn('inline-block text-[11px] font-medium px-2 py-0.5 rounded-md', financementCfg.bg, financementCfg.text)}>
-                {financementCfg.label}
-              </span>
-            </ProfilField>
-          )}
-          {p.nombre_stagiaires_estime && (
-            <ProfilField icon={Users} label="Stagiaires estimés">
-              {p.nombre_stagiaires_estime} stagiaire{p.nombre_stagiaires_estime > 1 ? 's' : ''}
-            </ProfilField>
-          )}
-          {p.siret && (
-            <ProfilField icon={Hash} label="SIRET">{p.siret}</ProfilField>
-          )}
+          <EditableField icon={Users} label="Type (INTER / INTRA)" value={fields.type_formation} onChange={set('type_formation')} />
+          <EditableField icon={FileText} label="Financement" value={fields.type_financement} onChange={set('type_financement')} />
+          <EditableField icon={Users} label="Stagiaires estimés" value={fields.nombre_stagiaires_estime} onChange={set('nombre_stagiaires_estime')} />
+          <EditableField icon={Hash} label="SIRET" value={fields.siret} onChange={set('siret')} />
         </div>
       </div>
     </div>
@@ -803,7 +817,7 @@ export default function FicheDossierPage({ params }: { params: Promise<{ id: str
             Prospects & Clients
           </Link>
           <span>/</span>
-          <span className="text-[#1F2937] font-medium truncate max-w-[200px]">{p.nom_entreprise}</span>
+          <span className="text-[#1F2937] font-medium truncate max-w-[200px]">{p.contact_prenom} {p.contact_nom}</span>
         </div>
         <button className="p-1.5 rounded-lg hover:bg-[#F3F4F6] text-[#9CA3AF] hover:text-[#6B7280] transition-colors cursor-pointer">
           <MoreHorizontal size={16} />
@@ -814,18 +828,18 @@ export default function FicheDossierPage({ params }: { params: Promise<{ id: str
         {/* Header card */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
           <div className="px-6 pt-5 pb-4">
-            {/* Nom entreprise + badge type */}
+            {/* Nom contact + badge type */}
             <div className="flex items-start justify-between gap-4 mb-1">
-              <h1 className="text-xl font-semibold text-[#1F2937] leading-tight">{p.nom_entreprise}</h1>
+              <h1 className="text-xl font-semibold text-[#1F2937] leading-tight">{p.contact_prenom} {p.contact_nom}</h1>
               <span className={cn('text-[11px] font-semibold px-2.5 py-1 rounded-lg border shrink-0', typeBadgeStyle)}>
                 {type}
               </span>
             </div>
 
-            {/* Contact */}
-            {(p.contact_prenom || p.contact_nom) && (
+            {/* Entreprise */}
+            {p.nom_entreprise && (
               <p className="text-sm text-[#6B7280] mb-3">
-                {p.contact_prenom} {p.contact_nom}
+                {p.nom_entreprise}
               </p>
             )}
 
