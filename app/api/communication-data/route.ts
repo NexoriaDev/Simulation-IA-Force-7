@@ -53,10 +53,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true })
     }
 
-    // ── Créer une nouvelle étape + email + relances ───────────────────────────
+    // ── Créer une nouvelle étape (sans email — configuré séparément) ──────────
     if (action === 'create') {
-      const { newOrdre, nom, objet, corps, mode, relances: relancesData } = body
-      // Décale les étapes existantes >= newOrdre
+      const { newOrdre, nom } = body
       const { data: aDecaler } = await sb.from('etapes_process').select('id, ordre').gte('ordre', newOrdre)
       await Promise.all(
         (aDecaler ?? []).map((e: { id: string; ordre: number }) =>
@@ -64,14 +63,18 @@ export async function POST(req: Request) {
         )
       )
       const { data: etapeRows } = await sb.from('etapes_process').insert({ ordre: newOrdre, nom }).select()
-      const newEtape = etapeRows?.[0]
-      if (!newEtape) return NextResponse.json({ error: 'échec insert étape' }, { status: 500 })
+      if (!etapeRows?.[0]) return NextResponse.json({ error: 'échec insert étape' }, { status: 500 })
+      return NextResponse.json({ ok: true })
+    }
 
+    // ── Configurer l'email d'une étape existante (INSERT template + relances) ─
+    if (action === 'config-email') {
+      const { etapeId, objet, corps, mode, relances: relancesData } = body
       const { data: tplRows } = await sb.from('templates_email')
-        .insert({ etape_id: newEtape.id, objet, corps, mode }).select()
+        .insert({ etape_id: etapeId, objet, corps, mode }).select()
       const newTpl = tplRows?.[0]
-
-      if (newTpl && relancesData?.length > 0) {
+      if (!newTpl) return NextResponse.json({ error: 'échec insert template' }, { status: 500 })
+      if (relancesData?.length > 0) {
         await sb.from('relances').insert(
           relancesData.map((r: { objet: string; corps: string; delai_jours: number }, i: number) => ({
             template_email_id: newTpl.id, ordre: i + 1, ...r,
