@@ -13,27 +13,39 @@ import { FORMATIONS_BY_CATEGORIE, CATEGORIES, ALL_FORMATIONS } from '@/lib/data/
 
 // ─── Config statut campagne ───────────────────────────────────────────────────
 
-const STATUT_CFG: Record<StatutCampagne, { label: string; badge: string; dot: string; selector: string; col: string }> = {
+const STATUT_CFG: Record<StatutCampagne, {
+  label: string; badge: string; dot: string; selector: string
+  colBg: string; colText: string; colDot: string; colBadge: string
+}> = {
   brouillon: {
     label:    'Brouillon',
     badge:    'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100',
     dot:      'bg-gray-300',
     selector: 'bg-gray-50 border-gray-300 text-gray-700',
-    col:      'bg-gray-50 border-gray-200',
+    colBg:    'bg-[#F8F9FA]',
+    colText:  'text-gray-600',
+    colDot:   'bg-gray-400',
+    colBadge: 'bg-white text-gray-500 border border-gray-200',
   },
   active: {
     label:    'Active',
     badge:    'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100',
     dot:      'bg-emerald-500',
     selector: 'bg-[#EBF3FB] border-[#1267A4] text-[#1267A4]',
-    col:      'bg-emerald-50/50 border-emerald-200',
+    colBg:    'bg-[#00BC7D]/10',
+    colText:  'text-gray-700',
+    colDot:   'bg-[#00BC7D]',
+    colBadge: 'bg-white text-gray-500 border border-gray-200',
   },
   inactive: {
     label:    'Inactive',
     badge:    'bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100',
     dot:      'bg-orange-400',
     selector: 'bg-orange-50 border-orange-400 text-orange-600',
-    col:      'bg-orange-50/50 border-orange-200',
+    colBg:    'bg-[#FFAC4F]/10',
+    colText:  'text-gray-700',
+    colDot:   'bg-[#FFAC4F]',
+    colBadge: 'bg-white text-gray-500 border border-gray-200',
   },
 }
 
@@ -43,7 +55,7 @@ const STATUT_CYCLE: Record<StatutCampagne, StatutCampagne> = {
   inactive:  'brouillon',
 }
 
-const STATUT_COLS: StatutCampagne[] = ['brouillon', 'active', 'inactive']
+const STATUT_COLS: StatutCampagne[] = ['brouillon', 'inactive', 'active']
 
 // ─── Types locaux ─────────────────────────────────────────────────────────────
 
@@ -567,7 +579,7 @@ export default function CampagnesPage() {
 
       {/* ─── Vue Kanban ───────────────────────────────────────────────────────── */}
       {!loading && campagnes.length > 0 && view === 'kanban' && (
-        <div className="grid grid-cols-3 gap-4 items-start">
+        <div className="flex items-stretch rounded-2xl overflow-hidden divide-x divide-[#E5E7EB] min-h-[65vh]">
           {STATUT_COLS.map(col => {
             const cards = campagnes.filter(c => c.statut === col)
             const cfg = STATUT_CFG[col]
@@ -581,19 +593,18 @@ export default function CampagnesPage() {
                 }}
                 onDrop={() => handleDrop(col)}
                 className={cn(
-                  'rounded-2xl border-2 p-3 min-h-[240px] transition-all duration-150',
-                  isOver
-                    ? 'border-[#1267A4]/50 bg-[#EBF3FB]/60 scale-[1.01]'
-                    : cfg.col
+                  'flex-1 p-3 min-h-[240px] transition-all duration-150',
+                  cfg.colBg,
+                  isOver && 'brightness-105'
                 )}
               >
                 {/* En-tête colonne */}
                 <div className="flex items-center justify-between mb-3 px-1">
                   <div className="flex items-center gap-2">
-                    <span className={cn('w-2 h-2 rounded-full', cfg.dot)} />
-                    <span className="text-sm font-semibold text-gray-700">{cfg.label}</span>
+                    <span className={cn('w-2 h-2 rounded-full', cfg.colDot)} />
+                    <span className={cn('text-sm font-semibold', cfg.colText)}>{cfg.label}</span>
                   </div>
-                  <span className="text-xs font-medium bg-white/80 text-gray-500 rounded-full px-2 py-0.5 border border-gray-200">
+                  <span className={cn('text-xs font-medium rounded-full px-2 py-0.5', cfg.colBadge)}>
                     {cards.length}
                   </span>
                 </div>
@@ -618,9 +629,9 @@ export default function CampagnesPage() {
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="flex items-center justify-center h-16 rounded-xl border-2 border-dashed border-[#1267A4]/30 mt-1"
+                    className="flex items-center justify-center h-16 rounded-xl border-2 border-dashed border-gray-300 mt-1"
                   >
-                    <span className="text-xs text-[#1267A4]/60">Déposer ici</span>
+                    <span className={cn('text-xs opacity-60', cfg.colText)}>Déposer ici</span>
                   </motion.div>
                 )}
               </div>
