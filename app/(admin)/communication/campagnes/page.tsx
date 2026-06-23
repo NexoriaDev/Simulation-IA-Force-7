@@ -5,21 +5,50 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Pencil, Copy, Trash2, Loader2, X, Users, Mail, Calendar, Zap, Check, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { STATUT_DOSSIER_CONFIG } from '@/lib/utils/format'
-import type { StatutDossier, CampagneEmail, CritereCle, ModeEnvoiCampagne } from '@/lib/types'
+import type { StatutDossier, CampagneEmail, CritereCle, ModeEnvoiCampagne, StatutCampagne } from '@/lib/types'
 import { FORMATIONS_BY_CATEGORIE, CATEGORIES, ALL_FORMATIONS } from '@/lib/data/formations-force7'
+
+// ─── Config statut campagne ───────────────────────────────────────────────────
+
+const STATUT_CFG: Record<StatutCampagne, { label: string; badge: string; dot: string; selector: string }> = {
+  brouillon: {
+    label:    'Brouillon',
+    badge:    'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100',
+    dot:      'bg-gray-300',
+    selector: 'bg-gray-50 border-gray-300 text-gray-700',
+  },
+  active: {
+    label:    'Active',
+    badge:    'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100',
+    dot:      'bg-emerald-500',
+    selector: 'bg-[#EBF3FB] border-[#1267A4] text-[#1267A4]',
+  },
+  inactive: {
+    label:    'Inactive',
+    badge:    'bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100',
+    dot:      'bg-orange-400',
+    selector: 'bg-orange-50 border-orange-400 text-orange-600',
+  },
+}
+
+const STATUT_CYCLE: Record<StatutCampagne, StatutCampagne> = {
+  brouillon: 'active',
+  active:    'inactive',
+  inactive:  'brouillon',
+}
 
 // ─── Types locaux ─────────────────────────────────────────────────────────────
 
 interface CritereItem { cle: CritereCle; valeur: string }
 
 interface CampagneForm {
-  nom: string; objet: string; corps: string; actif: boolean
+  nom: string; objet: string; corps: string; statut: StatutCampagne
   mode_envoi: ModeEnvoiCampagne; envoyer_le: string
   criteres: CritereItem[]
 }
 
 const EMPTY: CampagneForm = {
-  nom: '', objet: '', corps: '', actif: false,
+  nom: '', objet: '', corps: '', statut: 'brouillon',
   mode_envoi: 'maintenant', envoyer_le: '', criteres: [],
 }
 
@@ -184,7 +213,6 @@ export default function CampagnesPage() {
   }
   useEffect(() => { load() }, [])
 
-  // Comptage destinataires avec debounce 350ms
   useEffect(() => {
     if (!modal) return
     clearTimeout(countTimer.current)
@@ -213,7 +241,7 @@ export default function CampagnesPage() {
   }
   function openEdit(c: CampagneEmail) {
     setForm({
-      nom: c.nom, objet: c.objet, corps: c.corps, actif: c.actif,
+      nom: c.nom, objet: c.objet, corps: c.corps, statut: c.statut,
       mode_envoi: c.mode_envoi,
       envoyer_le: c.envoyer_le ? c.envoyer_le.slice(0, 16) : '',
       criteres: c.criteres.map(cr => ({ cle: cr.cle, valeur: cr.valeur })),
@@ -244,8 +272,8 @@ export default function CampagnesPage() {
     }
   }
 
-  async function toggle(c: CampagneEmail) {
-    await api('toggle', { id: c.id, actif: !c.actif })
+  async function cycleStatut(c: CampagneEmail) {
+    await api('set_statut', { id: c.id, statut: STATUT_CYCLE[c.statut] })
     await load()
   }
   async function duplicate(c: CampagneEmail) {
@@ -276,7 +304,6 @@ export default function CampagnesPage() {
     }))
   }
 
-  // Filtre unique (statut, type_formation)
   function addCritere(cle: 'statut' | 'type_formation') {
     if (form.criteres.some(c => c.cle === cle)) return
     const defaultValeur = cle === 'statut' ? (statuts[0] ?? '') : 'INTER'
@@ -289,7 +316,6 @@ export default function CampagnesPage() {
     setForm(f => ({ ...f, criteres: f.criteres.map(c => c.cle === cle ? { ...c, valeur } : c) }))
   }
 
-  // Filtres multi-sélection (categorie, formation)
   function addFilter(cle: 'categorie' | 'formation') {
     setShownSelects(s => new Set([...s, cle]))
   }
@@ -304,7 +330,6 @@ export default function CampagnesPage() {
         ...f.criteres.filter(c => c.cle !== 'categorie'),
         ...vals.map(valeur => ({ cle: 'categorie' as CritereCle, valeur })),
       ]
-      // Si on restreint les catégories, supprimer les formations qui n'appartiennent plus
       if (vals.length > 0) {
         const valid = new Set(vals.flatMap(c => FORMATIONS_BY_CATEGORIE[c] ?? []))
         const filteredForms = f.criteres.filter(c => c.cle === 'formation' && valid.has(c.valeur))
@@ -314,7 +339,6 @@ export default function CampagnesPage() {
     })
   }
 
-  // Formations disponibles selon les catégories sélectionnées
   const selectedCats = form.criteres.filter(c => c.cle === 'categorie').map(c => c.valeur)
   const availableFormations = selectedCats.length > 0
     ? [...new Set(selectedCats.flatMap(c => FORMATIONS_BY_CATEGORIE[c] ?? []))].sort()
@@ -385,91 +409,92 @@ export default function CampagnesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {campagnes.map((c, i) => (
-                <motion.tr
-                  key={c.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.18, delay: i * 0.04 }}
-                  className="hover:bg-gray-50 transition-colors"
-                >
-                  <td className="px-6 py-4">
-                    <p className="font-semibold text-gray-900 leading-tight">{c.nom}</p>
-                    {c.objet && (
-                      <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[220px]">{c.objet}</p>
-                    )}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={() => toggle(c)}
-                      title={c.actif ? 'Désactiver' : 'Activer'}
-                      className={cn(
-                        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors cursor-pointer',
-                        c.actif
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                          : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+              {campagnes.map((c, i) => {
+                const cfg = STATUT_CFG[c.statut]
+                return (
+                  <motion.tr
+                    key={c.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.18, delay: i * 0.04 }}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-6 py-4">
+                      <p className="font-semibold text-gray-900 leading-tight">{c.nom}</p>
+                      {c.objet && (
+                        <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[220px]">{c.objet}</p>
                       )}
-                    >
-                      <span className={cn('w-1.5 h-1.5 rounded-full', c.actif ? 'bg-emerald-500' : 'bg-gray-300')} />
-                      {c.actif ? 'Active' : 'Inactive'}
-                    </button>
-                  </td>
+                    </td>
 
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1.5 text-gray-600">
-                      <Users size={13} className="text-gray-400 shrink-0" />
-                      <span className="font-medium">{c.nb_destinataires}</span>
-                    </div>
-                  </td>
-
-                  <td className="px-6 py-4">
-                    {c.mode_envoi === 'maintenant' ? (
-                      <span className="flex items-center gap-1.5 text-gray-500 text-xs">
-                        <Zap size={12} className="text-[#6199C1] shrink-0" />
-                        Immédiat
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1.5 text-gray-500 text-xs">
-                        <Calendar size={12} className="text-[#6199C1] shrink-0" />
-                        {c.envoyer_le
-                          ? new Date(c.envoyer_le).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-                          : 'Programmé'}
-                      </span>
-                    )}
-                  </td>
-
-                  <td className="px-6 py-4 text-xs text-gray-400">
-                    {new Date(c.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1">
+                    <td className="px-6 py-4">
                       <button
-                        onClick={() => openEdit(c)}
-                        title="Modifier"
-                        className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-[#1267A4] hover:bg-blue-50 transition-colors cursor-pointer"
+                        onClick={() => cycleStatut(c)}
+                        title="Cliquer pour changer le statut"
+                        className={cn(
+                          'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors cursor-pointer',
+                          cfg.badge
+                        )}
                       >
-                        <Pencil size={13} />
+                        <span className={cn('w-1.5 h-1.5 rounded-full', cfg.dot)} />
+                        {cfg.label}
                       </button>
-                      <button
-                        onClick={() => duplicate(c)}
-                        title="Dupliquer"
-                        className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-[#1267A4] hover:bg-blue-50 transition-colors cursor-pointer"
-                      >
-                        <Copy size={13} />
-                      </button>
-                      <button
-                        onClick={() => setConfirmDel(c)}
-                        title="Supprimer"
-                        className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1.5 text-gray-600">
+                        <Users size={13} className="text-gray-400 shrink-0" />
+                        <span className="font-medium">{c.nb_destinataires}</span>
+                      </div>
+                    </td>
+
+                    <td className="px-6 py-4">
+                      {c.mode_envoi === 'maintenant' ? (
+                        <span className="flex items-center gap-1.5 text-gray-500 text-xs">
+                          <Zap size={12} className="text-[#6199C1] shrink-0" />
+                          Immédiat
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1.5 text-gray-500 text-xs">
+                          <Calendar size={12} className="text-[#6199C1] shrink-0" />
+                          {c.envoyer_le
+                            ? new Date(c.envoyer_le).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                            : 'Programmé'}
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="px-6 py-4 text-xs text-gray-400">
+                      {new Date(c.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => openEdit(c)}
+                          title="Modifier"
+                          className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-[#1267A4] hover:bg-blue-50 transition-colors cursor-pointer"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={() => duplicate(c)}
+                          title="Dupliquer"
+                          className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-[#1267A4] hover:bg-blue-50 transition-colors cursor-pointer"
+                        >
+                          <Copy size={13} />
+                        </button>
+                        <button
+                          onClick={() => setConfirmDel(c)}
+                          title="Supprimer"
+                          className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -494,7 +519,6 @@ export default function CampagnesPage() {
               exit={{ scale: 0.95, opacity: 0, y: 12 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             >
-              {/* En-tête modale */}
               <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 shrink-0">
                 <h2 className="text-base font-semibold text-gray-900">
                   {modal.mode === 'create' ? 'Nouvelle campagne' : 'Modifier la campagne'}
@@ -507,7 +531,6 @@ export default function CampagnesPage() {
                 </button>
               </div>
 
-              {/* Corps modale (scrollable) */}
               <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
 
                 {/* Nom */}
@@ -559,7 +582,6 @@ export default function CampagnesPage() {
                   </label>
 
                   <div className="space-y-2.5">
-                    {/* Filtres single-select actifs (statut, type_formation) */}
                     {form.criteres.filter(c => c.cle === 'statut' || c.cle === 'type_formation').map(cr => (
                       <div key={cr.cle} className="flex items-center gap-3">
                         <span className="text-xs font-medium text-gray-500 w-36 shrink-0">
@@ -589,7 +611,6 @@ export default function CampagnesPage() {
                       </div>
                     ))}
 
-                    {/* Filtre Catégorie (multi-select) */}
                     {shownSelects.has('categorie') && (
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-medium text-gray-500 w-36 shrink-0">
@@ -610,7 +631,6 @@ export default function CampagnesPage() {
                       </div>
                     )}
 
-                    {/* Filtre Formation (multi-select + recherche) */}
                     {shownSelects.has('formation') && (
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-medium text-gray-500 w-36 shrink-0">
@@ -632,46 +652,29 @@ export default function CampagnesPage() {
                       </div>
                     )}
 
-                    {/* Boutons d'ajout */}
                     <div className="flex flex-wrap gap-2 pt-1">
                       {!form.criteres.some(c => c.cle === 'statut') && (
-                        <button
-                          type="button"
-                          onClick={() => addCritere('statut')}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-dashed border-gray-300 text-xs text-gray-500 hover:border-[#1267A4] hover:text-[#1267A4] transition-colors cursor-pointer"
-                        >
-                          <Plus size={11} />
-                          {CRITERE_LABELS.statut}
+                        <button type="button" onClick={() => addCritere('statut')}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-dashed border-gray-300 text-xs text-gray-500 hover:border-[#1267A4] hover:text-[#1267A4] transition-colors cursor-pointer">
+                          <Plus size={11} />{CRITERE_LABELS.statut}
                         </button>
                       )}
                       {!form.criteres.some(c => c.cle === 'type_formation') && (
-                        <button
-                          type="button"
-                          onClick={() => addCritere('type_formation')}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-dashed border-gray-300 text-xs text-gray-500 hover:border-[#1267A4] hover:text-[#1267A4] transition-colors cursor-pointer"
-                        >
-                          <Plus size={11} />
-                          {CRITERE_LABELS.type_formation}
+                        <button type="button" onClick={() => addCritere('type_formation')}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-dashed border-gray-300 text-xs text-gray-500 hover:border-[#1267A4] hover:text-[#1267A4] transition-colors cursor-pointer">
+                          <Plus size={11} />{CRITERE_LABELS.type_formation}
                         </button>
                       )}
                       {!shownSelects.has('categorie') && (
-                        <button
-                          type="button"
-                          onClick={() => addFilter('categorie')}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-dashed border-gray-300 text-xs text-gray-500 hover:border-[#1267A4] hover:text-[#1267A4] transition-colors cursor-pointer"
-                        >
-                          <Plus size={11} />
-                          {CRITERE_LABELS.categorie}
+                        <button type="button" onClick={() => addFilter('categorie')}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-dashed border-gray-300 text-xs text-gray-500 hover:border-[#1267A4] hover:text-[#1267A4] transition-colors cursor-pointer">
+                          <Plus size={11} />{CRITERE_LABELS.categorie}
                         </button>
                       )}
                       {!shownSelects.has('formation') && (
-                        <button
-                          type="button"
-                          onClick={() => addFilter('formation')}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-dashed border-gray-300 text-xs text-gray-500 hover:border-[#1267A4] hover:text-[#1267A4] transition-colors cursor-pointer"
-                        >
-                          <Plus size={11} />
-                          {CRITERE_LABELS.formation}
+                        <button type="button" onClick={() => addFilter('formation')}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-dashed border-gray-300 text-xs text-gray-500 hover:border-[#1267A4] hover:text-[#1267A4] transition-colors cursor-pointer">
+                          <Plus size={11} />{CRITERE_LABELS.formation}
                         </button>
                       )}
                       {allFiltersActive && (
@@ -680,7 +683,6 @@ export default function CampagnesPage() {
                     </div>
                   </div>
 
-                  {/* Compteur destinataires */}
                   <div className="mt-3 flex items-center gap-2 px-4 py-3 rounded-xl bg-[#F8F9FA] border border-gray-100">
                     <Users size={14} className="text-[#6199C1] shrink-0" />
                     {counting ? (
@@ -744,27 +746,37 @@ export default function CampagnesPage() {
                   </AnimatePresence>
                 </div>
 
-                {/* ─── Activation ───────────────────────────────────────────────── */}
-                <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-gray-50 border border-gray-100">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Campagne active</p>
-                    <p className="text-xs text-gray-400 mt-0.5">Une campagne inactive ne sera jamais envoyée</p>
+                {/* ─── Statut de la campagne ────────────────────────────────────── */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                    Statut de la campagne
+                  </label>
+                  <div className="flex gap-2">
+                    {(['brouillon', 'active', 'inactive'] as StatutCampagne[]).map(s => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, statut: s }))}
+                        className={cn(
+                          'flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors cursor-pointer',
+                          form.statut === s
+                            ? STATUT_CFG[s].selector
+                            : 'border-gray-200 text-gray-400 hover:bg-gray-50'
+                        )}
+                      >
+                        <span className={cn(
+                          'w-2 h-2 rounded-full',
+                          form.statut === s ? STATUT_CFG[s].dot : 'bg-gray-300'
+                        )} />
+                        {STATUT_CFG[s].label}
+                      </button>
+                    ))}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setForm(f => ({ ...f, actif: !f.actif }))}
-                    className={cn(
-                      'relative w-11 h-6 rounded-full transition-colors duration-200 cursor-pointer shrink-0',
-                      form.actif ? 'bg-[#1267A4]' : 'bg-gray-200'
-                    )}
-                  >
-                    <motion.span
-                      layout
-                      className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm"
-                      animate={{ left: form.actif ? '1.375rem' : '0.25rem' }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                    />
-                  </button>
+                  {form.statut === 'brouillon' && (
+                    <p className="text-xs text-gray-400 mt-2">
+                      Une campagne brouillon ne sera jamais envoyée, même si une date est programmée.
+                    </p>
+                  )}
                 </div>
               </div>
 

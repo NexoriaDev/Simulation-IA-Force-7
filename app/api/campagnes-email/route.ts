@@ -88,9 +88,9 @@ export async function POST(req: Request) {
 
   try {
     if (action === 'create') {
-      const { nom, objet, corps, actif, mode_envoi, envoyer_le, criteres } = body
+      const { nom, objet, corps, statut, mode_envoi, envoyer_le, criteres } = body
       const { data: rows, error: insertErr } = await sb.from('campagnes_email')
-        .insert({ nom, objet, corps, actif, mode_envoi, envoyer_le }).select()
+        .insert({ nom, objet, corps, statut: statut ?? 'brouillon', mode_envoi, envoyer_le }).select()
       const campagne = rows?.[0]
       if (insertErr || !campagne) return NextResponse.json({ error: insertErr?.message ?? 'insert returned no row' }, { status: 500 })
       if (criteres?.length > 0) {
@@ -104,8 +104,8 @@ export async function POST(req: Request) {
     }
 
     if (action === 'update') {
-      const { id, nom, objet, corps, actif, mode_envoi, envoyer_le, criteres } = body
-      await sb.from('campagnes_email').update({ nom, objet, corps, actif, mode_envoi, envoyer_le }).eq('id', id)
+      const { id, nom, objet, corps, statut, mode_envoi, envoyer_le, criteres } = body
+      await sb.from('campagnes_email').update({ nom, objet, corps, statut, mode_envoi, envoyer_le }).eq('id', id)
       await sb.from('campagnes_email_criteres').delete().eq('campagne_id', id)
       if (criteres?.length > 0) {
         await sb.from('campagnes_email_criteres').insert(
@@ -122,8 +122,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true })
     }
 
-    if (action === 'toggle') {
-      await sb.from('campagnes_email').update({ actif: body.actif }).eq('id', body.id)
+    if (action === 'set_statut') {
+      await sb.from('campagnes_email').update({ statut: body.statut }).eq('id', body.id)
       return NextResponse.json({ ok: true })
     }
 
@@ -131,7 +131,7 @@ export async function POST(req: Request) {
       const { data: src, error } = await sb.from('campagnes_email').select('*').eq('id', body.id).single()
       if (error || !src) return NextResponse.json({ error: 'campagne introuvable' }, { status: 404 })
       const { data: newRows } = await sb.from('campagnes_email')
-        .insert({ nom: `${src.nom} (copie)`, objet: src.objet, corps: src.corps, actif: false, mode_envoi: src.mode_envoi, envoyer_le: src.envoyer_le })
+        .insert({ nom: `${src.nom} (copie)`, objet: src.objet, corps: src.corps, statut: 'brouillon', mode_envoi: src.mode_envoi, envoyer_le: src.envoyer_le })
         .select()
       const newCampagne = newRows?.[0]
       if (!newCampagne) return NextResponse.json({ error: 'échec duplication' }, { status: 500 })

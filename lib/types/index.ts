@@ -200,6 +200,7 @@ export interface UserProfile {
 // ─── Campagnes d'emailing ────────────────────────────────────────────────────
 
 export type ModeEnvoiCampagne = 'maintenant' | 'programme'
+export type StatutCampagne = 'brouillon' | 'active' | 'inactive'
 export type CritereCle = 'statut' | 'type_formation' | 'categorie' | 'formation'
 
 export interface CampagneCritere {
@@ -215,7 +216,7 @@ export interface CampagneEmail {
   nom: string
   objet: string
   corps: string
-  actif: boolean
+  statut: StatutCampagne
   mode_envoi: ModeEnvoiCampagne
   envoyer_le: string | null
   created_at: string
