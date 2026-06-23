@@ -1,10 +1,11 @@
 'use client'
 
-import { Users, MessageSquare } from 'lucide-react'
+import { Users, UserPlus, MessageSquare } from 'lucide-react'
 import { SectionTabs, type SectionTab } from '@/components/layout/SectionTabs'
 
 const TABS: SectionTab[] = [
-  { href: '/formateurs',          label: 'Liste des formateurs', icon: Users },
+  { href: '/formateurs',          label: 'Liste des formateurs', icon: Users,         },
+  { href: '/formateurs/demandes', label: 'Demandes',             icon: UserPlus,      badge: 4 },
   { href: '/formateurs/messages', label: 'Messages',             icon: MessageSquare, badge: 3 },
 ]
 

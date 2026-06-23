@@ -176,7 +176,7 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-308px)] min-h-[520px] rounded-2xl border border-[#6199C1]/25 overflow-hidden shadow-sm bg-white">
+    <div className="flex h-[calc(100vh-260px)] min-h-[560px] rounded-2xl border border-[#6199C1]/25 overflow-hidden shadow-sm bg-white">
 
       {/* ── Colonne gauche ── */}
       <div className="w-[290px] shrink-0 border-r border-[#F3F4F6] flex flex-col">

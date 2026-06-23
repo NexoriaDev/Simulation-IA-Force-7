@@ -268,12 +268,52 @@ function KanbanCard({
   )
 }
 
+// ─── Demo data ────────────────────────────────────────────────────────────────
+
+const DEMO_CAMPAGNES: CampagneEmail[] = [
+  {
+    id: 'demo-1', nom: 'Relance devis non signés — été 2026',
+    objet: 'Votre devis Force 7 est encore disponible',
+    corps: '', statut: 'active', mode_envoi: 'maintenant', envoyer_le: null,
+    nb_destinataires: 38, criteres: [],
+    created_at: '2026-05-15T09:00:00Z', updated_at: '2026-05-15T09:00:00Z',
+  },
+  {
+    id: 'demo-2', nom: 'Newsletter formations — automne 2026',
+    objet: 'Découvrez notre catalogue de formations pour la rentrée',
+    corps: '', statut: 'brouillon', mode_envoi: 'programme', envoyer_le: '2026-09-01T08:00:00Z',
+    nb_destinataires: 124, criteres: [],
+    created_at: '2026-06-01T14:30:00Z', updated_at: '2026-06-01T14:30:00Z',
+  },
+  {
+    id: 'demo-3', nom: 'Offre INTRA — Sécurité & HSE',
+    objet: 'Formez vos équipes en toute sécurité — Offre INTRA Force 7',
+    corps: '', statut: 'active', mode_envoi: 'maintenant', envoyer_le: null,
+    nb_destinataires: 47, criteres: [],
+    created_at: '2026-04-10T11:00:00Z', updated_at: '2026-04-10T11:00:00Z',
+  },
+  {
+    id: 'demo-4', nom: 'Réactivation clients inactifs — 6 mois',
+    objet: 'Vous nous manquez ! Redécouvrez nos formations',
+    corps: '', statut: 'inactive', mode_envoi: 'maintenant', envoyer_le: null,
+    nb_destinataires: 22, criteres: [],
+    created_at: '2026-03-20T10:00:00Z', updated_at: '2026-03-20T10:00:00Z',
+  },
+  {
+    id: 'demo-5', nom: 'Prévention risques — secteur maritime',
+    objet: 'Nouvelle session prévention des risques — maritime & portuaire',
+    corps: '', statut: 'brouillon', mode_envoi: 'programme', envoyer_le: '2026-08-01T09:00:00Z',
+    nb_destinataires: 63, criteres: [],
+    created_at: '2026-06-18T16:00:00Z', updated_at: '2026-06-18T16:00:00Z',
+  },
+]
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CampagnesPage() {
-  const [campagnes,      setCampagnes]      = useState<CampagneEmail[]>([])
+  const [campagnes,      setCampagnes]      = useState<CampagneEmail[]>(DEMO_CAMPAGNES)
   const [statuts,        setStatuts]        = useState<string[]>([])
-  const [loading,        setLoading]        = useState(true)
+  const [loading,        setLoading]        = useState(false)
   const [view,           setView]           = useState<'list' | 'kanban'>('list')
   const [modal,          setModal]          = useState<null | { mode: 'create' } | { mode: 'edit'; c: CampagneEmail }>(null)
   const [form,           setForm]           = useState<CampagneForm>(EMPTY)
@@ -288,12 +328,14 @@ export default function CampagnesPage() {
   const countTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   async function load() {
-    setLoading(true)
-    const res  = await fetch('/api/campagnes-email')
-    const data = await res.json()
-    setCampagnes(data.campagnes ?? [])
-    setStatuts(data.statuts?.map((s: { valeur: string }) => s.valeur) ?? [])
-    setLoading(false)
+    try {
+      const res  = await fetch('/api/campagnes-email')
+      const data = await res.json()
+      if (Array.isArray(data.campagnes) && data.campagnes.length > 0) {
+        setCampagnes(data.campagnes)
+        setStatuts(data.statuts?.map((s: { valeur: string }) => s.valeur) ?? [])
+      }
+    } catch { /* garde les données démo */ }
   }
   useEffect(() => { load() }, [])
 
