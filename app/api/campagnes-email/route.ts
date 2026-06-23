@@ -89,10 +89,10 @@ export async function POST(req: Request) {
   try {
     if (action === 'create') {
       const { nom, objet, corps, actif, mode_envoi, envoyer_le, criteres } = body
-      const { data: rows } = await sb.from('campagnes_email')
+      const { data: rows, error: insertErr } = await sb.from('campagnes_email')
         .insert({ nom, objet, corps, actif, mode_envoi, envoyer_le }).select()
       const campagne = rows?.[0]
-      if (!campagne) return NextResponse.json({ error: 'échec insert campagne' }, { status: 500 })
+      if (insertErr || !campagne) return NextResponse.json({ error: insertErr?.message ?? 'insert returned no row' }, { status: 500 })
       if (criteres?.length > 0) {
         await sb.from('campagnes_email_criteres').insert(
           criteres.map((c: { cle: string; valeur: string }) =>
