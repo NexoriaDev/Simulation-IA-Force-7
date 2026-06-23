@@ -14,10 +14,17 @@ export type SectionTab = {
 
 export function SectionTabs({ tabs }: { tabs: SectionTab[] }) {
   const pathname = usePathname()
+
+  // Longest-match wins: évite qu'un parent matche quand un enfant est actif
+  const activeHref = tabs.reduce((best, tab) => {
+    const matches = pathname === tab.href || pathname.startsWith(tab.href + '/')
+    return matches && tab.href.length > best.length ? tab.href : best
+  }, '')
+
   return (
     <div className="flex items-center gap-2 mb-6">
       {tabs.map((tab) => {
-        const isActive = pathname.startsWith(tab.href)
+        const isActive = tab.href === activeHref
         const Icon = tab.icon
         return (
           <Link

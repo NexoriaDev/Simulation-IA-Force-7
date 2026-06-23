@@ -72,6 +72,7 @@ function FilterDropdown({
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const label = options.find(o => o.value === value)?.label ?? options[0].label
+  const isActive = value !== ''
 
   useEffect(() => {
     if (!open) return
@@ -83,15 +84,20 @@ function FilterDropdown({
   }, [open])
 
   return (
-    <div ref={ref} className="relative flex items-stretch border-l border-[#E5E7EB]">
+    <div ref={ref} className="relative shrink-0">
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-2 px-4 text-sm text-[#4B5563] hover:bg-[#F8F9FA] transition-colors cursor-pointer"
+        className={cn(
+          'flex items-center gap-2 px-3.5 py-2.5 text-sm rounded-xl border transition-colors cursor-pointer whitespace-nowrap',
+          isActive
+            ? 'bg-[#EBF3FB] border-[#1267A4]/40 text-[#1267A4]'
+            : 'bg-white border-[#E5E7EB] text-[#4B5563] hover:border-[#1267A4]/30 hover:bg-[#F8F9FA]'
+        )}
       >
-        <Icon size={14} className="text-[#6199C1] shrink-0" />
-        <span className="whitespace-nowrap" style={{ minWidth: minW }}>{label}</span>
-        <ChevronDown size={13} className={cn('text-[#6199C1] shrink-0 transition-transform duration-150', open && 'rotate-180')} />
+        <Icon size={14} className={cn('shrink-0', isActive ? 'text-[#1267A4]' : 'text-[#6199C1]')} />
+        <span style={{ minWidth: minW }}>{label}</span>
+        <ChevronDown size={13} className={cn('shrink-0 transition-transform duration-150', open && 'rotate-180', isActive ? 'text-[#1267A4]' : 'text-[#6199C1]')} />
       </button>
 
       {open && (
@@ -104,7 +110,7 @@ function FilterDropdown({
               className={cn(
                 'w-full text-left px-4 py-2.5 text-sm transition-colors',
                 opt.value === value
-                  ? 'bg-gray-100 text-[#6199C1] font-medium'
+                  ? 'bg-[#EBF3FB] text-[#1267A4] font-medium'
                   : 'text-[#374151] hover:bg-[#F8F9FA]'
               )}
             >
@@ -158,24 +164,19 @@ function ProspectsPageInner() {
   const hasFilters = q || statut || type
 
   return (
-    <div className="min-h-full bg-[#F8F9FA]">
-      <div className="px-10 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-[#1F2937]">Prospects & Clients</h1>
-      </div>
-
-      <div className="px-10 pb-8 space-y-4">
-        {/* Bloc 1 : Recherche + filtres — un seul container avec dividers */}
-        <div className="flex items-stretch bg-white border border-[#6199C1]/25 rounded-xl shadow-sm">
+    <div className="space-y-4">
+        {/* Bloc 1 : Recherche + filtres */}
+        <div className="flex items-center gap-3">
 
           {/* Champ de recherche */}
           <div className="relative flex-1">
-            <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6199C1] pointer-events-none" />
+            <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9CA3AF] pointer-events-none" />
             <input
               type="text"
               placeholder="Rechercher par nom, email, organisation…"
               value={q}
               onChange={(e) => setParam('q', e.target.value)}
-              className="w-full pl-10 pr-4 py-3.5 text-sm text-[#1F2937] placeholder-[#9CA3AF] bg-transparent focus:outline-none"
+              className="w-full pl-10 pr-4 py-2.5 text-sm text-[#1F2937] placeholder-[#9CA3AF] bg-white border border-[#E5E7EB] rounded-xl focus:outline-none focus:border-[#1267A4]/50 focus:ring-2 focus:ring-[#1267A4]/10 transition-colors shadow-sm"
             />
           </div>
 
@@ -192,13 +193,14 @@ function ProspectsPageInner() {
             value={type}
             onChange={(v) => setParam('type', v)}
             options={TYPE_OPTIONS}
-            minW={128}
+            minW={108}
           />
 
           {hasFilters && (
             <button
               onClick={() => router.push('?', { scroll: false })}
-              className="flex items-center px-4 border-l border-[#E5E7EB] text-[#9CA3AF] hover:text-[#6B7280] hover:bg-[#F8F9FA] transition-colors cursor-pointer shrink-0 rounded-r-xl"
+              className="flex items-center justify-center w-[42px] h-[42px] rounded-xl border border-[#E5E7EB] bg-white text-[#9CA3AF] hover:text-[#6B7280] hover:bg-[#F8F9FA] transition-colors cursor-pointer shrink-0 shadow-sm"
+              title="Effacer les filtres"
             >
               <X size={13} />
             </button>
@@ -210,7 +212,7 @@ function ProspectsPageInner() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#E5E7EB]/80">
+                <tr className="bg-[#F8F9FA] border-b border-[#E5E7EB]">
                   {[
                     'Nom complet',
                     'Entreprise',
@@ -221,14 +223,14 @@ function ProspectsPageInner() {
                   ].map((h) => (
                     <th
                       key={h}
-                      className="text-left text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest px-6 py-4"
+                      className="text-left text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest px-6 py-3.5"
                     >
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F3F4F6]/80">
+              <tbody className="divide-y divide-[#E5E7EB]">
                 {prospects.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-sm text-[#9CA3AF]">
@@ -302,13 +304,12 @@ function ProspectsPageInner() {
           </div>
         </div>
       </div>
-    </div>
   )
 }
 
 export default function ProspectsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-sm text-[#9CA3AF]">Chargement…</div>}>
+    <Suspense fallback={<div className="text-sm text-[#9CA3AF]">Chargement…</div>}>
       <ProspectsPageInner />
     </Suspense>
   )
