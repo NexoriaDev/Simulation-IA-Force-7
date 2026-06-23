@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { GraduationCap, UserPlus, Eye, X, Mail, Phone, Briefcase, Calendar } from 'lucide-react'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { GraduationCap, UserPlus, Eye } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatDateShort } from '@/lib/utils/format'
 
 type SessionF = {
   id: string
@@ -107,242 +107,8 @@ function StatusBadge({ sessions }: { sessions: SessionF[] }) {
   )
 }
 
-// ─── Modale détail formateur ──────────────────────────────────────────────────
-
-type ModalTab = 'profil' | 'adf' | 'historique'
-
-function FormateurModal({ formateur, onClose }: { formateur: Formateur; onClose: () => void }) {
-  const [tab, setTab] = useState<ModalTab>('profil')
-  const actif = isActif(formateur.sessions_formation)
-
-  const sessionsSorted = [...formateur.sessions_formation].sort(
-    (a, b) => b.date_debut.localeCompare(a.date_debut)
-  )
-  const adfSessions = formateur.sessions_formation
-    .filter(s => s.date_debut > TODAY)
-    .sort((a, b) => a.date_debut.localeCompare(b.date_debut))
-
-  const TABS: { key: ModalTab; label: string; count?: number }[] = [
-    { key: 'profil',     label: 'Infos du profil' },
-    { key: 'adf',        label: 'ADF Inscrits', count: adfSessions.length },
-    { key: 'historique', label: 'Historique de formation' },
-  ]
-
-  return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-    >
-      <motion.div
-        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <motion.div
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden"
-        initial={{ scale: 0.96, opacity: 0, y: 12 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.96, opacity: 0, y: 8 }}
-        transition={{ type: 'spring', damping: 26, stiffness: 300 }}
-      >
-        {/* Header */}
-        <div className="flex items-center gap-4 px-6 py-5 border-b border-gray-100">
-          <div className="w-10 h-10 rounded-full bg-[#6199C1]/10 flex items-center justify-center shrink-0">
-            <span className="text-[#6199C1] text-sm font-bold">
-              {formateur.prenom[0]}{formateur.nom[0]}
-            </span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-base font-semibold text-[#1F2937] leading-tight">
-              {formateur.prenom} {formateur.nom}
-            </h2>
-            <p className="text-xs text-[#9CA3AF] mt-0.5 truncate">{formateur.email}</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 transition-colors cursor-pointer shrink-0"
-          >
-            <X size={15} />
-          </button>
-        </div>
-
-        {/* Sous-onglets pilule */}
-        <div className="flex items-center gap-2 px-6 py-4 border-b border-gray-100">
-          {TABS.map(t => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-colors cursor-pointer',
-                tab === t.key
-                  ? 'bg-[#1267A4] text-white border-[#1267A4]'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-[#1267A4] hover:text-[#1267A4]'
-              )}
-            >
-              {t.label}
-              {t.count != null && t.count > 0 && (
-                <span className={cn(
-                  'min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold flex items-center justify-center',
-                  tab === t.key ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-500'
-                )}>
-                  {t.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* Contenu */}
-        <div className="px-6 py-5 max-h-[70vh] overflow-y-auto">
-          <AnimatePresence mode="wait">
-            {tab === 'profil' && (
-              <motion.div key="profil"
-                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
-                className="space-y-4"
-              >
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest">Prénom</p>
-                    <p className="text-sm text-[#1F2937] font-medium">{formateur.prenom}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest">Nom</p>
-                    <p className="text-sm text-[#1F2937] font-medium">{formateur.nom}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest flex items-center gap-1.5">
-                    <Mail size={10} />Email
-                  </p>
-                  <p className="text-sm text-[#4B5563]">{formateur.email}</p>
-                </div>
-
-                {formateur.telephone && (
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest flex items-center gap-1.5">
-                      <Phone size={10} />Téléphone
-                    </p>
-                    <p className="text-sm text-[#4B5563]">{formateur.telephone}</p>
-                  </div>
-                )}
-
-                <div className="space-y-1">
-                  <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest flex items-center gap-1.5">
-                    <Briefcase size={10} />Spécialité(s)
-                  </p>
-                  <p className="text-sm text-[#4B5563] leading-relaxed">
-                    {formateur.specialites ?? <span className="text-[#9CA3AF]">—</span>}
-                  </p>
-                </div>
-
-                <div className="space-y-1.5 pt-1">
-                  <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest">Statut</p>
-                  <StatusBadge sessions={formateur.sessions_formation} />
-                  {actif && (
-                    <p className="text-xs text-emerald-600">
-                      Formation en cours — {formateur.sessions_formation.find(s => s.date_debut <= TODAY && s.date_fin >= TODAY)?.catalogue_formations?.intitule}
-                    </p>
-                  )}
-                </div>
-              </motion.div>
-            )}
-
-            {tab === 'adf' && (
-              <motion.div key="adf"
-                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
-              >
-                {adfSessions.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-center">
-                    <Calendar size={28} className="text-[#D1D5DB] mb-3" />
-                    <p className="text-sm text-[#9CA3AF]">Aucune ADF à venir planifiée</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {adfSessions.map((s, i) => (
-                      <motion.div key={s.id}
-                        initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.05, duration: 0.15 }}
-                        className="flex items-center gap-4 px-4 py-3.5 rounded-xl border border-[#F3F4F6] bg-[#F8F9FA]/60"
-                      >
-                        <div className="w-8 h-8 rounded-lg bg-[#6199C1]/10 flex items-center justify-center shrink-0">
-                          <GraduationCap size={14} className="text-[#6199C1]" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[#1F2937] truncate">
-                            {s.catalogue_formations?.intitule ?? 'Formation'}
-                          </p>
-                          <p className="text-xs text-[#9CA3AF] mt-0.5 flex items-center gap-1.5">
-                            <Calendar size={10} />
-                            Début le {formatDateShort(s.date_debut)} — fin le {formatDateShort(s.date_fin)}
-                          </p>
-                        </div>
-                        <span className="shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium border bg-[#EBF3FB] text-[#1267A4] border-[#1267A4]/20">
-                          À venir
-                        </span>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {tab === 'historique' && (
-              <motion.div key="historique"
-                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
-              >
-                {sessionsSorted.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-center">
-                    <Calendar size={28} className="text-[#D1D5DB] mb-3" />
-                    <p className="text-sm text-[#9CA3AF]">Aucune formation enregistrée</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {sessionsSorted.map(s => {
-                      const enCours = s.date_debut <= TODAY && s.date_fin >= TODAY
-                      const aVenir  = s.date_debut > TODAY
-                      return (
-                        <div key={s.id}
-                          className="flex items-center gap-4 px-4 py-3 rounded-xl border border-[#F3F4F6] hover:bg-[#FAFAFA] transition-colors"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-[#1F2937] truncate">
-                              {s.catalogue_formations?.intitule ?? 'Formation'}
-                            </p>
-                            <p className="text-xs text-[#9CA3AF] mt-0.5 flex items-center gap-1.5">
-                              <Calendar size={10} />
-                              {formatDateShort(s.date_debut)} – {formatDateShort(s.date_fin)}
-                            </p>
-                          </div>
-                          <span className={cn(
-                            'shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium border',
-                            enCours ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : aVenir ? 'bg-[#EBF3FB] text-[#1267A4] border-[#1267A4]/20'
-                            :          'bg-gray-100 text-gray-500 border-gray-200'
-                          )}>
-                            {enCours ? 'En cours' : aVenir ? 'À venir' : 'Terminé'}
-                          </span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </motion.div>
-    </motion.div>
-  )
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function FormateursPage() {
   const [formateurs, setFormateurs] = useState<Formateur[]>(DEMO_FORMATEURS)
-  const [selected, setSelected]     = useState<Formateur | null>(null)
 
   useEffect(() => {
     fetch('/api/formateurs')
@@ -417,15 +183,15 @@ export default function FormateursPage() {
                   <StatusBadge sessions={f.sessions_formation} />
                 </td>
 
-                {/* Détails */}
+                {/* Détails → page dédiée */}
                 <td className="px-6 py-4">
-                  <button
-                    onClick={() => setSelected(f)}
-                    className="flex items-center justify-center w-8 h-8 rounded-full text-[#9CA3AF] hover:text-[#6199C1] hover:bg-[#6199C1]/10 transition-colors cursor-pointer"
+                  <Link
+                    href={`/formateurs/${f.id}`}
+                    className="flex items-center justify-center w-8 h-8 rounded-full text-[#9CA3AF] hover:text-[#6199C1] hover:bg-[#6199C1]/10 transition-colors"
                     aria-label={`Voir la fiche de ${f.prenom} ${f.nom}`}
                   >
                     <Eye size={14} />
-                  </button>
+                  </Link>
                 </td>
               </motion.tr>
             ))}
@@ -440,13 +206,6 @@ export default function FormateursPage() {
           </p>
         </div>
       </div>
-
-      {/* Modale */}
-      <AnimatePresence>
-        {selected && (
-          <FormateurModal formateur={selected} onClose={() => setSelected(null)} />
-        )}
-      </AnimatePresence>
     </>
   )
 }
