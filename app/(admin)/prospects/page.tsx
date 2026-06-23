@@ -104,7 +104,7 @@ function FilterDropdown({
               className={cn(
                 'w-full text-left px-4 py-2.5 text-sm transition-colors',
                 opt.value === value
-                  ? 'bg-[#6199C1]/15 text-[#6199C1] font-medium'
+                  ? 'bg-gray-100 text-[#6199C1] font-medium'
                   : 'text-[#374151] hover:bg-[#F8F9FA]'
               )}
             >
@@ -158,9 +158,9 @@ function ProspectsPageInner() {
   const hasFilters = q || statut || type
 
   return (
-    <div className="min-h-full bg-[#6199C1]">
+    <div className="min-h-full bg-[#F8F9FA]">
       <div className="px-10 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-white">Prospects & Clients</h1>
+        <h1 className="text-2xl font-bold text-[#1F2937]">Prospects & Clients</h1>
       </div>
 
       <div className="px-10 pb-8 space-y-4">
@@ -243,7 +243,7 @@ function ProspectsPageInner() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.18, delay: i * 0.03 }}
-                        className="hover:bg-[#6199C1]/5 transition-colors group"
+                        className="hover:bg-gray-50 transition-colors group"
                       >
                         <td className="px-6 py-4">
                           <p className="font-semibold text-[#1F2937] leading-tight">

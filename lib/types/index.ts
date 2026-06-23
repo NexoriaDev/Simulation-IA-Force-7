@@ -197,6 +197,33 @@ export interface UserProfile {
   formateur_id: string | null
 }
 
+// ─── Campagnes d'emailing ────────────────────────────────────────────────────
+
+export type ModeEnvoiCampagne = 'maintenant' | 'programme'
+export type CritereCle = 'statut' | 'type_formation' | 'categorie' | 'formation'
+
+export interface CampagneCritere {
+  id: string
+  campagne_id: string
+  cle: CritereCle
+  valeur: string
+  created_at: string
+}
+
+export interface CampagneEmail {
+  id: string
+  nom: string
+  objet: string
+  corps: string
+  actif: boolean
+  mode_envoi: ModeEnvoiCampagne
+  envoyer_le: string | null
+  created_at: string
+  updated_at: string
+  criteres: CampagneCritere[]
+  nb_destinataires: number
+}
+
 // ─── Type Supabase Database (référencé par les clients) ─────────────────────
 
 export type Database = {

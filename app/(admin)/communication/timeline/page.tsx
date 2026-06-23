@@ -194,13 +194,8 @@ export default function TimelineEmailsPage() {
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="px-10 py-8">
-      {/* En-tête */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-[#1F2937]">Timeline & Emails</h1>
-          <p className="text-sm text-gray-400 mt-1">Configurez les étapes du processus et leurs emails associés</p>
-        </div>
+    <>
+      <div className="flex justify-end mb-6">
         <button
           onClick={() => openCreate(n > 0 ? etapes[n - 1].ordre : 0)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#1267A4] text-white text-sm font-medium hover:bg-[#0f5390] transition-colors cursor-pointer"
@@ -542,6 +537,6 @@ export default function TimelineEmailsPage() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   )
 }
