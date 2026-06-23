@@ -104,14 +104,16 @@ function ApprenantRow({ apprenant }: { apprenant: Apprenant }) {
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
-const TABS = ['profil', 'conversation', 'documents', 'parcours'] as const
+const TABS = ['profil', 'conversation', 'actions_requises', 'notifications', 'documents', 'parcours'] as const
 type TabKey = (typeof TABS)[number]
 
 const TAB_LABELS: Record<TabKey, string> = {
-  profil: 'Profil',
-  conversation: 'Conversation',
-  documents: 'Documents',
-  parcours: 'Parcours de formation',
+  profil:           'Profil',
+  conversation:     'Conversation',
+  actions_requises: 'Actions requises',
+  notifications:    'Notifications',
+  documents:        'Documents',
+  parcours:         'Parcours de formation',
 }
 
 // ─── ProfilTab ────────────────────────────────────────────────────────────────
@@ -336,6 +338,206 @@ function ConversationTab({
           )
         })}
       </div>
+    </div>
+  )
+}
+
+// ─── ActionsRequisesTab ───────────────────────────────────────────────────────
+
+type ActionDemo = { id: string; date: string; objet: string; corps: string }
+
+function getDemoActions(contactPrenom: string): ActionDemo[] {
+  return [
+    {
+      id: 'demo-ar-1',
+      date: '2026-06-23T10:15:00Z',
+      objet: 'Envoi de votre devis personnalisé — Formation Management de projet',
+      corps: `${contactPrenom},\n\nSuite à notre entretien téléphonique du 18 juin, veuillez trouver ci-joint le devis détaillé pour la formation « Management de projet » pour 6 stagiaires.\n\nTarif : 2 400 € HT / participant — Total : 14 400 € HT.\n\nCe devis est valable 30 jours. N'hésitez pas à nous contacter pour toute question.\n\nCordialement,\nIliès Mansour — Force 7 Formation`,
+    },
+  ]
+}
+
+function ActionsRequisesTab({ prospect }: { prospect: any }) {
+  const [validated, setValidated] = useState<Set<string>>(new Set())
+  const [editing, setEditing]     = useState<ActionDemo | null>(null)
+  const [editObjet, setEditObjet] = useState('')
+  const [editCorps, setEditCorps] = useState('')
+
+  const demoActions = getDemoActions(prospect?.contact_prenom ?? 'Madame/Monsieur')
+  const pending = demoActions.filter(a => !validated.has(a.id))
+  const done    = demoActions.filter(a =>  validated.has(a.id))
+
+  function openEdit(action: ActionDemo) {
+    setEditing(action); setEditObjet(action.objet); setEditCorps(action.corps)
+  }
+  function confirmEdit() {
+    if (!editing) return
+    setValidated(s => new Set([...s, editing.id]))
+    setEditing(null)
+  }
+
+  if (demoActions.length === 0) {
+    return (
+      <div className="bg-white rounded-xl border border-[#E5E7EB] px-5 py-12 text-center">
+        <Check size={28} className="mx-auto text-emerald-300 mb-3" />
+        <p className="text-sm font-medium text-[#9CA3AF]">Aucune action requise pour le moment</p>
+        <p className="text-xs text-[#C4CDD8] mt-1">Les emails IA à valider apparaîtront ici</p>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div className="space-y-3">
+        {pending.map((action, i) => (
+          <motion.div key={action.id}
+            initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.06, duration: 0.2 }}
+            className="rounded-xl border border-amber-200 bg-amber-50/40 overflow-hidden"
+          >
+            <div className="px-5 pt-4 pb-4">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={13} className="text-amber-500 shrink-0" />
+                  <span className="text-xs font-semibold text-amber-600">Email IA généré — à valider avant envoi</span>
+                </div>
+                <span className="text-xs text-[#9CA3AF] shrink-0">{formatDateTime(action.date)}</span>
+              </div>
+              <p className="text-sm font-semibold text-[#1F2937] mb-2.5">{action.objet}</p>
+              <div className="bg-white/80 rounded-lg border border-amber-100 px-4 py-3 mb-3">
+                <p className="text-xs text-[#6B7280] whitespace-pre-wrap leading-relaxed line-clamp-4">{action.corps}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setValidated(s => new Set([...s, action.id]))}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition-colors cursor-pointer"
+                >
+                  <Check size={12} strokeWidth={2.5} />Valider et envoyer
+                </button>
+                <button
+                  onClick={() => openEdit(action)}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#E5E7EB] text-xs font-medium text-[#6B7280] hover:bg-[#F8F9FA] transition-colors cursor-pointer"
+                >
+                  <PenLine size={12} />Modifier avant envoi
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+
+        {done.map((action) => (
+          <div key={action.id} className="rounded-xl border border-[#E5E7EB] bg-white px-5 py-4">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Check size={13} className="text-emerald-500 shrink-0" />
+              <span className="text-xs font-semibold text-emerald-600">Validé et envoyé par Iliès</span>
+              <span className="text-xs text-[#9CA3AF] ml-auto">{formatDateTime(action.date)}</span>
+            </div>
+            <p className="text-sm text-[#9CA3AF]">{action.objet}</p>
+          </div>
+        ))}
+
+        {pending.length === 0 && done.length > 0 && (
+          <div className="text-center py-6">
+            <p className="text-xs text-[#9CA3AF]">Toutes les actions ont été traitées</p>
+          </div>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {editing && (
+          <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setEditing(null)} />
+            <motion.div
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl"
+              initial={{ scale: 0.95, opacity: 0, y: 12 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 12 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            >
+              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={15} className="text-amber-500" />
+                  <h2 className="text-sm font-semibold text-[#1F2937]">Modifier l'email avant envoi</h2>
+                </div>
+                <button onClick={() => setEditing(null)}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 transition-colors cursor-pointer">
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="px-6 py-5 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Objet</label>
+                  <input type="text" value={editObjet} onChange={e => setEditObjet(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1267A4]/20 focus:border-[#1267A4] transition-colors" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Corps de l'email</label>
+                  <textarea rows={9} value={editCorps} onChange={e => setEditCorps(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1267A4]/20 focus:border-[#1267A4] transition-colors resize-none" />
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
+                <button onClick={() => setEditing(null)}
+                  className="px-5 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
+                  Annuler
+                </button>
+                <button onClick={confirmEdit}
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[#1267A4] text-white text-sm font-medium hover:bg-[#0f5390] transition-colors cursor-pointer">
+                  <Send size={13} />Envoyer
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  )
+}
+
+// ─── NotificationsTab ─────────────────────────────────────────────────────────
+
+type NotifType = 'email_envoye' | 'reponse_recue' | 'statut_change' | 'ia_genere' | 'dossier_cree'
+type NotifDemo = { id: string; date: string; type: NotifType; texte: string }
+
+function getDemoNotifications(contactName: string): NotifDemo[] {
+  return [
+    { id: 'n-1', date: '2026-06-23T10:15:00Z', type: 'ia_genere',      texte: 'Brouillon IA généré — Objet : Envoi de votre devis personnalisé' },
+    { id: 'n-2', date: '2026-06-22T16:30:00Z', type: 'reponse_recue',  texte: `Réponse reçue de ${contactName} — voir onglet Conversation` },
+    { id: 'n-3', date: '2026-06-20T14:00:00Z', type: 'email_envoye',   texte: 'Email automatique envoyé — Accusé de réception du dossier' },
+    { id: 'n-4', date: '2026-06-18T14:30:00Z', type: 'statut_change',  texte: 'Dossier passé au statut « Devis généré »' },
+    { id: 'n-5', date: '2026-06-18T09:15:00Z', type: 'email_envoye',   texte: 'Email automatique envoyé — Présentation de Force 7 Formation' },
+    { id: 'n-6', date: '2026-06-10T11:00:00Z', type: 'dossier_cree',   texte: `Dossier créé pour ${contactName}` },
+  ]
+}
+
+function NotifIconEl({ type }: { type: NotifType }) {
+  if (type === 'ia_genere')     return <Sparkles     size={13} className="text-amber-500" />
+  if (type === 'reponse_recue') return <MessageSquare size={13} className="text-emerald-500" />
+  if (type === 'email_envoye')  return <Send          size={13} className="text-[#6199C1]" />
+  if (type === 'statut_change') return <BarChart2     size={13} className="text-violet-500" />
+  return                               <FileText       size={13} className="text-[#9CA3AF]" />
+}
+
+function NotificationsTab({ prospect }: { prospect: any }) {
+  const contactName   = [prospect?.contact_prenom, prospect?.contact_nom].filter(Boolean).join(' ') || 'le prospect'
+  const notifications = getDemoNotifications(contactName)
+
+  return (
+    <div className="space-y-1.5">
+      {notifications.map((notif, i) => (
+        <motion.div key={notif.id}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          transition={{ delay: i * 0.04, duration: 0.18 }}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white border border-gray-100 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+        >
+          <div className="w-6 h-6 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
+            <NotifIconEl type={notif.type} />
+          </div>
+          <span className="text-sm text-[#4B5563] flex-1 leading-snug">{notif.texte}</span>
+          <span className="text-xs text-[#9CA3AF] shrink-0">{formatDateTime(notif.date)}</span>
+        </motion.div>
+      ))}
     </div>
   )
 }
@@ -612,9 +814,10 @@ export default function FicheDossierPage({ params }: { params: Promise<{ id: str
         : 'bg-gray-50 text-gray-600 border-gray-200'
 
   const tabBadges: Partial<Record<TabKey, number>> = {
-    conversation: convData.length,
-    documents: docData.length,
-    parcours: parcoursData.length > 0 ? parcoursData.length : undefined,
+    conversation:     convData.length,
+    actions_requises: 1, // ponytail: Phase 1 démo — calculé depuis DB en Phase 2
+    documents:        docData.length,
+    parcours:         parcoursData.length > 0 ? parcoursData.length : undefined,
   }
 
   return (
@@ -712,6 +915,8 @@ export default function FicheDossierPage({ params }: { params: Promise<{ id: str
             >
               {activeTab === 'profil' && <ProfilTab prospect={prospect} />}
               {activeTab === 'conversation' && <ConversationTab conversations={convData} prospect={prospect} onValidate={handleValidate} />}
+              {activeTab === 'actions_requises' && <ActionsRequisesTab prospect={prospect} />}
+              {activeTab === 'notifications' && <NotificationsTab prospect={prospect} />}
               {activeTab === 'documents' && <DocumentsTab documents={docData} />}
               {activeTab === 'parcours' && <ParcoursFormationTab prospectId={id} sessions={parcoursData} />}
             </motion.div>
