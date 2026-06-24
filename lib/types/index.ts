@@ -93,9 +93,17 @@ export interface SessionFormation {
   type_formation: TypeFormation
   date_debut: string
   date_fin: string
-  formateur_id: string | null // FK formateurs.id
+  formateur_id: string | null // FK formateurs.id (legacy — voir session_formateurs)
+  plafond_apprenants: number | null
   statut_session: string
   dossier_onedrive_path: string | null
+  created_at: string
+}
+
+export interface SessionFormateur {
+  id: string
+  session_id: string
+  formateur_id: string
   created_at: string
 }
 
@@ -133,6 +141,7 @@ export interface Formateur {
 export interface CatalogueFormation {
   id: string
   intitule: string
+  categorie: string | null
   duree: string
   prix_standard: number
   programme_formation: string | null

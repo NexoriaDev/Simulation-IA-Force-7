@@ -3,13 +3,14 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { UsersRound, LogOut, User, MessageSquare, GraduationCap } from 'lucide-react'
+import { UsersRound, LogOut, User, MessageSquare, GraduationCap, BookOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
   { href: '/prospects',              label: 'Prospects & Clients', icon: UsersRound,   matchPrefixes: ['/prospects', '/dossiers'] },
   { href: '/communication/timeline', label: 'Communication',       icon: MessageSquare,  matchPrefixes: ['/communication'] },
   { href: '/formateurs',             label: 'Formateurs',          icon: GraduationCap,  matchPrefixes: ['/formateurs'] },
+  { href: '/formations',             label: 'Formations',          icon: BookOpen,       matchPrefixes: ['/formations'] },
 ]
 
 export function Sidebar() {
