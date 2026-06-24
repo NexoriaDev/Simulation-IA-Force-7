@@ -58,9 +58,18 @@ const STATUT_LABEL: Record<string, string> = {
   termine: 'Terminée',
 }
 const STATUT_STYLE: Record<string, string> = {
-  en_cours: 'bg-green-50 text-green-700',
-  terminee: 'bg-gray-100 text-[#9CA3AF]',
-  termine: 'bg-gray-100 text-[#9CA3AF]',
+  en_preparation: 'bg-blue-50 text-blue-700',
+  planifie:       'bg-blue-50 text-blue-700',
+  planifiee:      'bg-blue-50 text-blue-700',
+  en_cours:       'bg-green-50 text-green-700',
+  terminee:       'bg-gray-100 text-[#6B7280]',
+  termine:        'bg-gray-100 text-[#6B7280]',
+}
+
+const STATUS_GROUPS: Record<string, string[]> = {
+  a_venir:  ['en_preparation', 'planifie', 'planifiee'],
+  en_cours: ['en_cours'],
+  termine:  ['termine', 'terminee'],
 }
 
 // ─── CreateSessionModal ────────────────────────────────────────────────────────
@@ -314,8 +323,9 @@ export default function FormationDetailPage() {
   const [formation, setFormation] = useState<CatalogueFormation | null>(null)
   const [sessions, setSessions]   = useState<SessionRow[]>([])
   const [loading, setLoading]     = useState(true)
-  const [modal, setModal]         = useState(false)
-  const [view, setView]           = useState<'cards' | 'list'>('cards')
+  const [modal, setModal]           = useState(false)
+  const [view, setView]             = useState<'cards' | 'list'>('cards')
+  const [statusFilter, setStatusFilter] = useState<'tous' | 'a_venir' | 'en_cours' | 'termine'>('tous')
 
   useEffect(() => {
     if (!id) return
@@ -436,6 +446,31 @@ export default function FormationDetailPage() {
         </div>
       </div>
 
+      {/* Filtre statut */}
+      {sessions.length > 0 && (
+        <div className="flex gap-2 mb-4">
+          {([
+            { key: 'tous',     label: 'Tous' },
+            { key: 'a_venir',  label: 'À venir' },
+            { key: 'en_cours', label: 'En cours' },
+            { key: 'termine',  label: 'Terminé' },
+          ] as const).map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setStatusFilter(key)}
+              className={cn(
+                'px-3 py-1.5 text-xs font-medium rounded-full border transition-colors cursor-pointer',
+                statusFilter === key
+                  ? 'bg-[#1267A4] text-white border-[#1267A4]'
+                  : 'border-[#E5E7EB] text-[#6B7280] hover:border-[#1267A4]/40'
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Sessions — vide */}
       {sessions.length === 0 && (
         <motion.div
@@ -459,9 +494,14 @@ export default function FormationDetailPage() {
       )}
 
       {/* Sessions — vue cards */}
-      {sessions.length > 0 && view === 'cards' && (
+      {sessions.length > 0 && view === 'cards' && (() => {
+        const filteredSessions = statusFilter === 'tous' ? sessions : sessions.filter(s => STATUS_GROUPS[statusFilter].includes(s.statut_session))
+        return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sessions.map((s, i) => {
+          {filteredSessions.length === 0 && (
+            <p className="col-span-3 text-center text-sm text-[#9CA3AF] py-10">Aucune session pour ce filtre.</p>
+          )}
+          {filteredSessions.map((s, i) => {
             const sem = nbSemaines(s.date_debut, s.date_fin)
             return (
               <Link key={s.id} href={`/formations/${id}/sessions/${s.id}`}>
@@ -509,10 +549,13 @@ export default function FormationDetailPage() {
             )
           })}
         </div>
-      )}
+        )
+      })()}
 
       {/* Sessions — vue liste */}
-      {sessions.length > 0 && view === 'list' && (
+      {sessions.length > 0 && view === 'list' && (() => {
+        const filteredSessions = statusFilter === 'tous' ? sessions : sessions.filter(s => STATUS_GROUPS[statusFilter].includes(s.statut_session))
+        return (
         <motion.div
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
@@ -530,12 +573,12 @@ export default function FormationDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {sessions.map((s, i) => (
-                <motion.tr
+              {filteredSessions.length === 0 && (
+                <tr><td colSpan={5} className="px-5 py-10 text-center text-sm text-[#9CA3AF]">Aucune session pour ce filtre.</td></tr>
+              )}
+              {filteredSessions.map((s) => (
+                <tr
                   key={s.id}
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
                   onClick={() => router.push(`/formations/${id}/sessions/${s.id}`)}
                   className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#F8F9FA] transition-colors cursor-pointer"
                 >
@@ -573,12 +616,13 @@ export default function FormationDetailPage() {
                       <span className="text-sm text-[#374151]">{s.formateurs.map(f => `${f.prenom} ${f.nom}`).join(', ')}</span>
                     )}
                   </td>
-                </motion.tr>
+                </tr>
               ))}
             </tbody>
           </table>
         </motion.div>
-      )}
+        )
+      })()}
 
       <AnimatePresence>
         {modal && (
