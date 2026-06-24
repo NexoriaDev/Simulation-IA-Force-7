@@ -144,6 +144,7 @@ export interface CatalogueFormation {
   categorie: string | null
   duree: string
   prix_standard: number
+  cover_image_url: string | null
   programme_formation: string | null
   trame_ppt_url: string | null
 }

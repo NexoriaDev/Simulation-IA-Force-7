@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BookOpen, Plus, X, Clock, Euro, Layers } from 'lucide-react'
+import { BookOpen, Plus, X, Clock, Euro, ImagePlus, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
 import type { CatalogueFormation } from '@/lib/types'
 
 type FormationRow = CatalogueFormation & { nb_sessions: number }
@@ -22,18 +23,112 @@ const CATEGORIES = [
   'Transport & Logistique',
 ]
 
-// ─── Modale création ─────────────────────────────────────────────────────────
+// ─── Placeholder gradient par initiale ───────────────────────────────────────
+
+const GRADIENTS = [
+  'from-[#EBF3FB] to-[#c8ddf2]',  // bleu
+  'from-[#f0fdf4] to-[#bbf7d0]',  // vert
+  'from-[#fdf4ff] to-[#e9d5ff]',  // violet
+  'from-[#fff7ed] to-[#fed7aa]',  // orange
+  'from-[#f0f9ff] to-[#bae6fd]',  // cyan
+  'from-[#fefce8] to-[#fef08a]',  // jaune
+]
+
+function gradientFor(str: string) {
+  const i = str.charCodeAt(0) % GRADIENTS.length
+  return GRADIENTS[i]
+}
+
+// ─── Zone d'upload image ──────────────────────────────────────────────────────
+
+function ImageUploadZone({ file, preview, onChange }: {
+  file: File | null
+  preview: string | null
+  onChange: (f: File | null) => void
+}) {
+  const inputRef  = useRef<HTMLInputElement>(null)
+  const [drag, setDrag] = useState(false)
+
+  const handleFiles = useCallback((files: FileList | null) => {
+    const f = files?.[0]
+    if (!f || !f.type.startsWith('image/')) return
+    onChange(f)
+  }, [onChange])
+
+  return (
+    <div className="relative">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="sr-only"
+        onChange={e => handleFiles(e.target.files)}
+      />
+
+      {preview ? (
+        <div className="relative h-44 rounded-xl overflow-hidden border border-[#E5E7EB]">
+          <img src={preview} alt="Aperçu" className="w-full h-full object-cover" />
+          <button
+            type="button"
+            onClick={() => { onChange(null); if (inputRef.current) inputRef.current.value = '' }}
+            className="absolute top-2 right-2 w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-colors cursor-pointer border border-[#E5E7EB]"
+          >
+            <Trash2 size={13} className="text-red-500" />
+          </button>
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="absolute bottom-2 right-2 px-2.5 py-1 bg-white/90 backdrop-blur-sm rounded-lg text-[11px] font-medium text-[#374151] shadow-sm hover:bg-white transition-colors cursor-pointer border border-[#E5E7EB]"
+          >
+            Changer
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          onDragOver={e => { e.preventDefault(); setDrag(true) }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={e => { e.preventDefault(); setDrag(false); handleFiles(e.dataTransfer.files) }}
+          className={cn(
+            'w-full h-36 rounded-xl border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-2 cursor-pointer',
+            drag
+              ? 'border-[#1267A4] bg-[#EBF3FB]'
+              : 'border-[#E5E7EB] hover:border-[#1267A4]/40 hover:bg-[#F8F9FA]'
+          )}
+        >
+          <div className="w-10 h-10 rounded-xl bg-[#EBF3FB] flex items-center justify-center">
+            <ImagePlus size={18} className="text-[#1267A4]" strokeWidth={1.75} />
+          </div>
+          <div className="text-center">
+            <p className="text-xs font-medium text-[#374151]">Cliquez ou déposez une image</p>
+            <p className="text-[11px] text-[#9CA3AF] mt-0.5">PNG, JPG, WebP — recommandé 800×450 px</p>
+          </div>
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ─── Modale création ──────────────────────────────────────────────────────────
 
 function CreationModal({ onClose, onCreated }: { onClose: () => void; onCreated: (f: FormationRow) => void }) {
-  const [intitule, setIntitule]     = useState('')
-  const [categorie, setCategorie]   = useState('')
-  const [duree, setDuree]           = useState('')
-  const [prix, setPrix]             = useState('')
-  const [saving, setSaving]         = useState(false)
-  const [error, setError]           = useState<string | null>(null)
-  const inputRef                    = useRef<HTMLInputElement>(null)
+  const [intitule, setIntitule]   = useState('')
+  const [categorie, setCategorie] = useState('')
+  const [duree, setDuree]         = useState('')
+  const [prix, setPrix]           = useState('')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [preview, setPreview]     = useState<string | null>(null)
+  const [saving, setSaving]       = useState(false)
+  const [error, setError]         = useState<string | null>(null)
 
-  useEffect(() => { inputRef.current?.focus() }, [])
+  // Preview via FileReader
+  useEffect(() => {
+    if (!imageFile) { setPreview(null); return }
+    const reader = new FileReader()
+    reader.onload = e => setPreview(e.target?.result as string)
+    reader.readAsDataURL(imageFile)
+  }, [imageFile])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -41,10 +136,24 @@ function CreationModal({ onClose, onCreated }: { onClose: () => void; onCreated:
     setSaving(true)
     setError(null)
     try {
+      let cover_image_url: string | null = null
+
+      if (imageFile) {
+        const supabase = createClient()
+        const ext  = imageFile.name.split('.').pop()
+        const path = `covers/${crypto.randomUUID()}.${ext}`
+        const { error: uploadErr } = await supabase.storage
+          .from('formations')
+          .upload(path, imageFile, { cacheControl: '3600', upsert: false })
+        if (uploadErr) throw new Error(`Upload image : ${uploadErr.message}`)
+        const { data } = supabase.storage.from('formations').getPublicUrl(path)
+        cover_image_url = data.publicUrl
+      }
+
       const res = await fetch('/api/formations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intitule, categorie, duree, prix_standard: prix ? parseFloat(prix) : 0 }),
+        body: JSON.stringify({ intitule, categorie, duree, prix_standard: prix ? parseFloat(prix) : 0, cover_image_url }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
       const { formation } = await res.json()
@@ -63,7 +172,7 @@ function CreationModal({ onClose, onCreated }: { onClose: () => void; onCreated:
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 8 }}
         transition={{ duration: 0.15 }}
-        className="bg-white rounded-2xl shadow-2xl border border-[#E5E7EB] w-full max-w-md mx-4"
+        className="bg-white rounded-2xl shadow-2xl border border-[#E5E7EB] w-full max-w-lg mx-4"
       >
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#F3F4F6]">
           <h2 className="text-sm font-semibold text-[#1F2937]">Nouvelle formation</h2>
@@ -73,10 +182,17 @@ function CreationModal({ onClose, onCreated }: { onClose: () => void; onCreated:
         </div>
 
         <form onSubmit={submit} className="px-6 py-5 space-y-4">
+          {/* Image de couverture */}
+          <div>
+            <label className="block text-xs font-medium text-[#374151] mb-1.5">Image de couverture</label>
+            <ImageUploadZone file={imageFile} preview={preview} onChange={setImageFile} />
+          </div>
+
+          {/* Intitulé */}
           <div>
             <label className="block text-xs font-medium text-[#374151] mb-1.5">Intitulé *</label>
             <input
-              ref={inputRef}
+              autoFocus
               value={intitule}
               onChange={e => setIntitule(e.target.value)}
               placeholder="ex : Excel Avancé"
@@ -85,6 +201,7 @@ function CreationModal({ onClose, onCreated }: { onClose: () => void; onCreated:
             />
           </div>
 
+          {/* Catégorie */}
           <div>
             <label className="block text-xs font-medium text-[#374151] mb-1.5">Catégorie</label>
             <select
@@ -97,6 +214,7 @@ function CreationModal({ onClose, onCreated }: { onClose: () => void; onCreated:
             </select>
           </div>
 
+          {/* Durée + Prix */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-[#374151] mb-1.5">Durée</label>
@@ -145,7 +263,7 @@ function CreationModal({ onClose, onCreated }: { onClose: () => void; onCreated:
   )
 }
 
-// ─── Card ────────────────────────────────────────────────────────────────────
+// ─── Card ─────────────────────────────────────────────────────────────────────
 
 function FormationCard({ f, index }: { f: FormationRow; index: number }) {
   return (
@@ -154,47 +272,62 @@ function FormationCard({ f, index }: { f: FormationRow; index: number }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, delay: index * 0.02 }}
-      className="block bg-white rounded-2xl border border-[#E5E7EB] p-5 hover:border-[#1267A4]/30 hover:shadow-md transition-all cursor-pointer group"
+      className="block bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden hover:border-[#1267A4]/30 hover:shadow-md transition-all cursor-pointer group"
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="w-9 h-9 rounded-xl bg-[#EBF3FB] flex items-center justify-center shrink-0">
-          <BookOpen size={16} className="text-[#1267A4]" strokeWidth={1.75} />
-        </div>
+      {/* Image / placeholder */}
+      <div className="h-32 relative overflow-hidden">
+        {f.cover_image_url ? (
+          <img
+            src={f.cover_image_url}
+            alt={f.intitule}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className={cn('w-full h-full bg-gradient-to-br flex items-center justify-center', gradientFor(f.intitule))}>
+            <BookOpen size={28} className="text-[#1267A4]/40" strokeWidth={1.5} />
+          </div>
+        )}
+        {/* Badge sessions */}
         <span className={cn(
-          'text-[10px] font-semibold px-2 py-1 rounded-full',
-          f.nb_sessions > 0 ? 'bg-green-50 text-green-700' : 'bg-[#F3F4F6] text-[#9CA3AF]'
+          'absolute top-2 right-2 text-[10px] font-semibold px-2 py-1 rounded-full shadow-sm',
+          f.nb_sessions > 0
+            ? 'bg-white/90 text-green-700'
+            : 'bg-white/90 text-[#9CA3AF]'
         )}>
           {f.nb_sessions} session{f.nb_sessions !== 1 ? 's' : ''}
         </span>
       </div>
 
-      <h3 className="text-sm font-semibold text-[#1F2937] leading-snug mb-1 group-hover:text-[#1267A4] transition-colors">
-        {f.intitule}
-      </h3>
+      {/* Contenu */}
+      <div className="p-4">
+        <h3 className="text-sm font-semibold text-[#1F2937] leading-snug mb-0.5 group-hover:text-[#1267A4] transition-colors line-clamp-2">
+          {f.intitule}
+        </h3>
 
-      {f.categorie && (
-        <p className="text-[11px] text-[#1267A4] font-medium mb-3">{f.categorie}</p>
-      )}
+        {f.categorie && (
+          <p className="text-[11px] text-[#1267A4] font-medium mb-2">{f.categorie}</p>
+        )}
 
-      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[#F3F4F6]">
-        {f.duree && (
-          <span className="flex items-center gap-1.5 text-[11px] text-[#6B7280]">
-            <Clock size={11} className="shrink-0" />
-            {f.duree}
-          </span>
-        )}
-        {f.prix_standard > 0 && (
-          <span className="flex items-center gap-1.5 text-[11px] text-[#6B7280]">
-            <Euro size={11} className="shrink-0" />
-            {f.prix_standard.toLocaleString('fr-FR')} €
-          </span>
-        )}
+        <div className="flex items-center gap-4 pt-2 border-t border-[#F3F4F6] mt-2">
+          {f.duree && (
+            <span className="flex items-center gap-1 text-[11px] text-[#6B7280]">
+              <Clock size={10} className="shrink-0" />
+              {f.duree}
+            </span>
+          )}
+          {f.prix_standard > 0 && (
+            <span className="flex items-center gap-1 text-[11px] text-[#6B7280]">
+              <Euro size={10} className="shrink-0" />
+              {f.prix_standard.toLocaleString('fr-FR')} €
+            </span>
+          )}
+        </div>
       </div>
     </motion.a>
   )
 }
 
-// ─── Page ────────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function FormationsPage() {
   const [formations, setFormations] = useState<FormationRow[]>([])
@@ -208,18 +341,12 @@ export default function FormationsPage() {
   }, [])
 
   return (
-    <div className="min-h-full bg-[#F8F9FA]">
-      {/* Header */}
-      <div className="bg-white border-b border-[#E5E7EB] px-8 py-4 flex items-center justify-between sticky top-0 z-20">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#EBF3FB] flex items-center justify-center">
-            <Layers size={15} className="text-[#1267A4]" strokeWidth={1.75} />
-          </div>
-          <div>
-            <h1 className="text-sm font-semibold text-[#1F2937]">Formations</h1>
-            <p className="text-[11px] text-[#9CA3AF]">{formations.length} formation{formations.length !== 1 ? 's' : ''} au catalogue</p>
-          </div>
-        </div>
+    <>
+      {/* Barre d'actions */}
+      <div className="flex items-center justify-between mb-6">
+        <p className="text-sm text-gray-400">
+          {loading ? '' : `${formations.length} formation${formations.length !== 1 ? 's' : ''} au catalogue`}
+        </p>
         <button
           onClick={() => setModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-[#1267A4] text-white text-sm font-medium rounded-xl hover:bg-[#0f5a94] transition-colors cursor-pointer shadow-sm"
@@ -229,37 +356,35 @@ export default function FormationsPage() {
         </button>
       </div>
 
-      {/* Grid */}
-      <div className="px-8 py-8">
-        {loading ? (
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-[#E5E7EB] p-5 h-36 animate-pulse" />
-            ))}
+      {/* Grille */}
+      {loading ? (
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl border border-[#E5E7EB] h-52 animate-pulse" />
+          ))}
+        </div>
+      ) : formations.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-[#EBF3FB] flex items-center justify-center mb-4">
+            <BookOpen size={24} className="text-[#1267A4]" strokeWidth={1.5} />
           </div>
-        ) : formations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-[#EBF3FB] flex items-center justify-center mb-4">
-              <BookOpen size={24} className="text-[#1267A4]" strokeWidth={1.5} />
-            </div>
-            <p className="text-sm font-medium text-[#374151] mb-1">Aucune formation au catalogue</p>
-            <p className="text-xs text-[#9CA3AF] mb-5">Commencez par créer votre première formation.</p>
-            <button
-              onClick={() => setModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#1267A4] text-white text-sm font-medium rounded-xl hover:bg-[#0f5a94] transition-colors cursor-pointer"
-            >
-              <Plus size={14} />
-              Créer une formation
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {formations.map((f, i) => (
-              <FormationCard key={f.id} f={f} index={i} />
-            ))}
-          </div>
-        )}
-      </div>
+          <p className="text-sm font-medium text-[#374151] mb-1">Aucune formation au catalogue</p>
+          <p className="text-xs text-[#9CA3AF] mb-5">Commencez par créer votre première formation.</p>
+          <button
+            onClick={() => setModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#1267A4] text-white text-sm font-medium rounded-xl hover:bg-[#0f5a94] transition-colors cursor-pointer"
+          >
+            <Plus size={14} />
+            Créer une formation
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {formations.map((f, i) => (
+            <FormationCard key={f.id} f={f} index={i} />
+          ))}
+        </div>
+      )}
 
       <AnimatePresence>
         {modal && (
@@ -269,6 +394,6 @@ export default function FormationsPage() {
           />
         )}
       </AnimatePresence>
-    </div>
+    </>
   )
 }

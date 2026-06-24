@@ -150,7 +150,7 @@ export default function FormateursPage() {
                 key={f.id}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: i * 0.04, duration: 0.18 }}
+                transition={{ duration: 0.15 }}
                 className="hover:bg-gray-50 transition-colors"
               >
                 {/* Formateur */}

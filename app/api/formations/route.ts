@@ -28,13 +28,13 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const body = await req.json()
-  const { intitule, categorie, duree, prix_standard } = body
+  const { intitule, categorie, duree, prix_standard, cover_image_url } = body
   if (!intitule?.trim()) return NextResponse.json({ error: 'intitule requis' }, { status: 400 })
 
   const supabase = db()
   const { data, error } = await supabase
     .from('catalogue_formations')
-    .insert({ intitule: intitule.trim(), categorie: categorie?.trim() || null, duree: duree?.trim() || '', prix_standard: prix_standard ?? 0 })
+    .insert({ intitule: intitule.trim(), categorie: categorie?.trim() || null, duree: duree?.trim() || '', prix_standard: prix_standard ?? 0, cover_image_url: cover_image_url || null })
     .select()
     .single()
 
