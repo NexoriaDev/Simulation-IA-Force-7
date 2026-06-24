@@ -217,7 +217,7 @@ function CreateSessionModal({
 
             {/* Formateurs */}
             <section>
-              <p className="text-xs font-semibold text-[#374151] mb-1">Formateurs</p>
+              <p className="text-xs font-semibold text-[#374151] mb-1">Formateur</p>
               <p className="text-[11px] text-[#9CA3AF] mb-3">
                 {!dateDebut || !dateFin ? 'Sélectionnez des dates pour voir les disponibilités' : 'Disponibilité calculée sur la période sélectionnée'}
               </p>
@@ -414,7 +414,7 @@ export default function FormationDetailPage() {
         </button>
       </div>
 
-      {/* Liste des sessions */}
+      {/* Cards sessions */}
       {sessions.length === 0 ? (
         <motion.div
           initial={{ opacity: 0 }}
@@ -435,83 +435,66 @@ export default function FormationDetailPage() {
           </button>
         </motion.div>
       ) : (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2, delay: 0.05 }}
-          className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden"
-        >
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[#F3F4F6] bg-[#F8F9FA]">
-                {['Période', 'Type', 'Apprenants', 'Formateur(s)', 'Statut'].map(h => (
-                  <th key={h} className="text-left text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide px-5 py-3">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sessions.map((s, i) => (
-                <motion.tr
-                  key={s.id}
-                  initial={{ opacity: 0, y: 4 }}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sessions.map((s, i) => {
+            const sem = nbSemaines(s.date_debut, s.date_fin)
+            return (
+              <Link key={s.id} href={`/formations/${id}/sessions/${s.id}`}>
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#F8F9FA] transition-colors"
+                  transition={{ duration: 0.18, delay: i * 0.05 }}
+                  className="bg-white rounded-2xl border border-[#E5E7EB] p-5 hover:shadow-md hover:border-[#1267A4]/30 transition-all cursor-pointer h-full"
                 >
-                  <td className="px-5 py-4">
-                    <p className="text-sm font-medium text-[#1F2937]">{fmtDate(s.date_debut)}</p>
-                    <p className="text-[11px] text-[#9CA3AF]">→ {fmtDate(s.date_fin)}</p>
-                    <p className="text-[11px] text-[#1267A4] font-medium mt-0.5">
-                      {nbSemaines(s.date_debut, s.date_fin)} sem.
-                    </p>
-                  </td>
-                  <td className="px-5 py-4">
+                  {/* Type + Statut */}
+                  <div className="flex items-center justify-between mb-4">
                     <span className={cn(
-                      'text-[11px] font-semibold px-2.5 py-1 rounded-full',
+                      'text-[11px] font-bold px-2.5 py-1 rounded-full',
                       s.type_formation === 'INTER' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
                     )}>
                       {s.type_formation}
                     </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className="flex items-center gap-1.5 text-sm text-[#374151]">
-                      <Users size={13} className="text-[#9CA3AF]" />
-                      {s.nb_apprenants}
-                      {s.plafond_apprenants ? (
-                        <span className="text-[#9CA3AF]">/ {s.plafond_apprenants}</span>
-                      ) : (
-                        <span className="text-[#9CA3AF]">/ ∞</span>
-                      )}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    {s.formateurs.length === 0 ? (
-                      <span className="text-[11px] text-[#9CA3AF] italic">Non assigné</span>
-                    ) : (
-                      <div className="flex flex-wrap gap-1">
-                        {s.formateurs.map(f => (
-                          <span key={f.id} className="text-[11px] bg-[#EBF3FB] text-[#1267A4] px-2.5 py-1 rounded-full font-medium whitespace-nowrap">
-                            {f.prenom} {f.nom}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-5 py-4">
                     <span className={cn(
                       'text-[11px] font-medium px-2.5 py-1 rounded-full',
                       STATUT_STYLE[s.statut_session] ?? 'bg-[#EBF3FB] text-[#1267A4]'
                     )}>
                       {STATUT_LABEL[s.statut_session] ?? s.statut_session}
                     </span>
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </motion.div>
+                  </div>
+
+                  {/* Dates */}
+                  <p className="text-sm font-semibold text-[#1F2937]">{fmtDate(s.date_debut)}</p>
+                  <p className="text-xs text-[#9CA3AF] mt-0.5">→ {fmtDate(s.date_fin)}</p>
+                  <p className="text-xs text-[#1267A4] font-medium mt-1 mb-4">
+                    {sem} semaine{sem > 1 ? 's' : ''}
+                  </p>
+
+                  {/* Stats */}
+                  <div className="border-t border-[#F3F4F6] pt-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs text-[#6B7280]">
+                      <Users size={12} className="text-[#9CA3AF] shrink-0" />
+                      <span>
+                        {s.nb_apprenants}
+                        {s.plafond_apprenants
+                          ? <span className="text-[#9CA3AF]"> / {s.plafond_apprenants} apprenants</span>
+                          : <span className="text-[#9CA3AF]"> apprenant{s.nb_apprenants !== 1 ? 's' : ''} · Sans plafond</span>
+                        }
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-[#6B7280]">
+                      <BookOpen size={12} className="text-[#9CA3AF] shrink-0" />
+                      {s.formateurs.length === 0 ? (
+                        <span className="text-[#9CA3AF] italic">Non assigné</span>
+                      ) : (
+                        <span className="truncate">{s.formateurs.map(f => `${f.prenom} ${f.nom}`).join(', ')}</span>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              </Link>
+            )
+          })}
+        </div>
       )}
 
       <AnimatePresence>
