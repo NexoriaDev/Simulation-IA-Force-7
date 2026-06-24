@@ -244,7 +244,7 @@ function ProspectsPageInner() {
                         key={p.id}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ duration: 0.18, delay: i * 0.03 }}
+                        transition={{ duration: 0.15 }}
                         className="hover:bg-gray-50 transition-colors group"
                       >
                         <td className="px-6 py-4">

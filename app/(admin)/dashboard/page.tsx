@@ -268,7 +268,7 @@ export default function DashboardPage() {
                         key={p.id}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ duration: 0.2, delay: i * 0.04 }}
+                        transition={{ duration: 0.15 }}
                         className="hover:bg-[#FAFAFA] transition-colors group"
                       >
                         <td className="px-5 py-3.5">
