@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, Plus, Clock, Euro, Users, Calendar,
-  BookOpen, X, Check, Loader2,
+  BookOpen, X, Loader2,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -24,15 +24,8 @@ type SessionRow = {
   formateurs: { id: string; nom: string; prenom: string }[]
 }
 
-type FormateurDispo = { id: string; nom: string; prenom: string; disponible: boolean }
-
-type ProspectItem = {
-  id: string
-  nom_entreprise: string
-  contact_nom: string
-  contact_prenom: string
-  formation_souhaitee: string | null
-}
+type Conflit = { formation: string; date_debut: string; date_fin: string }
+type FormateurDispo = { id: string; nom: string; prenom: string; disponible: boolean; conflit: Conflit | null }
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
 
@@ -81,27 +74,17 @@ function CreateSessionModal({
   onClose: () => void
   onCreated: (s: SessionRow) => void
 }) {
-  const [dateDebut, setDateDebut]       = useState('')
-  const [dateFin, setDateFin]           = useState('')
-  const [type, setType]                 = useState<TypeFormation>('INTER')
-  const [plafond, setPlafond]           = useState('')
-  const [sansPlafond, setSansPlafond]   = useState(false)
-  const [selectedForms, setSelectedForms]       = useState<string[]>([])
-  const [selectedProspects, setSelectedProspects] = useState<string[]>([])
-  const [prospectSearch, setProspectSearch]     = useState('')
-  const [prospectFilter, setProspectFilter]     = useState<'tous' | 'formation'>('tous')
+  const [dateDebut, setDateDebut]     = useState('')
+  const [dateFin, setDateFin]         = useState('')
+  const [type, setType]               = useState<TypeFormation>('INTER')
+  const [plafond, setPlafond]         = useState('')
+  const [sansPlafond, setSansPlafond] = useState(false)
+  const [selectedForms, setSelectedForms] = useState<string[]>([])
 
   const [formateurs, setFormateurs]     = useState<FormateurDispo[]>([])
-  const [prospects, setProspects]       = useState<ProspectItem[]>([])
   const [loadingForms, setLoadingForms] = useState(false)
   const [saving, setSaving]             = useState(false)
   const [error, setError]               = useState<string | null>(null)
-
-  useEffect(() => {
-    fetch('/api/prospects-data')
-      .then(r => r.json())
-      .then(({ prospects }) => setProspects(prospects ?? []))
-  }, [])
 
   useEffect(() => {
     if (!dateDebut || !dateFin || dateFin < dateDebut) { setFormateurs([]); return }
@@ -112,16 +95,7 @@ function CreateSessionModal({
       .finally(() => setLoadingForms(false))
   }, [dateDebut, dateFin])
 
-  const toggleForm     = (id: string) => setSelectedForms(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
-  const toggleProspect = (id: string) => setSelectedProspects(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
-
-  const filteredProspects = prospects.filter(p => {
-    if (prospectFilter === 'formation' && p.formation_souhaitee !== formationId) return false
-    if (!prospectSearch) return true
-    const q = prospectSearch.toLowerCase()
-    return p.nom_entreprise.toLowerCase().includes(q) ||
-      `${p.contact_prenom} ${p.contact_nom}`.toLowerCase().includes(q)
-  })
+  const toggleForm = (id: string) => setSelectedForms(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
 
   const sw = dateDebut && dateFin && dateFin >= dateDebut ? nbSemaines(dateDebut, dateFin) : null
 
@@ -137,14 +111,13 @@ function CreateSessionModal({
           date_debut: dateDebut, date_fin: dateFin, type_formation: type,
           plafond_apprenants: sansPlafond ? null : (plafond ? parseInt(plafond) : null),
           formateur_ids: selectedForms,
-          prospect_ids: selectedProspects,
         }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
       const { session } = await res.json()
       onCreated({
         ...session,
-        nb_apprenants: selectedProspects.length,
+        nb_apprenants: 0,
         formateurs: formateurs.filter(f => selectedForms.includes(f.id)),
       })
     } catch (err) {
@@ -258,82 +231,54 @@ function CreateSessionModal({
                   Vérification des disponibilités…
                 </div>
               ) : (
-                <div className="space-y-1.5 max-h-44 overflow-y-auto">
+                <div className="space-y-1.5 max-h-52 overflow-y-auto">
                   {formateurs.map(f => (
                     <button
                       key={f.id} type="button"
                       onClick={() => f.disponible && toggleForm(f.id)}
                       disabled={!f.disponible}
                       className={cn(
-                        'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-sm transition-colors',
+                        'w-full flex items-start gap-3 px-3.5 py-2.5 rounded-xl border text-sm transition-colors text-left',
                         !f.disponible
-                          ? 'border-[#E5E7EB] bg-[#F8F9FA] opacity-50 cursor-not-allowed'
+                          ? 'border-[#E5E7EB] bg-[#FAFAFA] cursor-not-allowed'
                           : selectedForms.includes(f.id)
                             ? 'border-[#1267A4] bg-[#EBF3FB] cursor-pointer'
                             : 'border-[#E5E7EB] hover:border-[#1267A4]/40 cursor-pointer'
                       )}
                     >
-                      <span className={cn('font-medium text-sm', selectedForms.includes(f.id) ? 'text-[#1267A4]' : 'text-[#1F2937]')}>
-                        {f.prenom} {f.nom}
+                      {/* Checkbox visuelle */}
+                      <span className={cn(
+                        'mt-0.5 w-4 h-4 shrink-0 rounded border flex items-center justify-center transition-colors',
+                        !f.disponible
+                          ? 'border-[#D1D5DB] bg-[#F3F4F6]'
+                          : selectedForms.includes(f.id)
+                            ? 'border-[#1267A4] bg-[#1267A4]'
+                            : 'border-[#D1D5DB]'
+                      )}>
+                        {selectedForms.includes(f.id) && (
+                          <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                            <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
                       </span>
-                      <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full', f.disponible ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600')}>
-                        {f.disponible ? 'Disponible' : 'Occupé'}
-                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className={cn('font-medium text-sm', f.disponible ? (selectedForms.includes(f.id) ? 'text-[#1267A4]' : 'text-[#1F2937]') : 'text-[#9CA3AF]')}>
+                          {f.prenom} {f.nom}
+                        </p>
+                        {f.conflit && (
+                          <p className="text-[11px] text-red-500 mt-0.5 truncate">
+                            Déjà sur «&nbsp;{f.conflit.formation}&nbsp;» du {fmtDate(f.conflit.date_debut)} au {fmtDate(f.conflit.date_fin)}
+                          </p>
+                        )}
+                      </div>
+                      {!f.conflit && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-700 shrink-0 self-center">
+                          Libre
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
-              )}
-            </section>
-
-            {/* Apprenants */}
-            <section>
-              <p className="text-xs font-semibold text-[#374151] mb-1">Apprenants</p>
-              <p className="text-[11px] text-[#9CA3AF] mb-3">Sélectionner depuis Prospects & Clients</p>
-              <div className="flex gap-2 mb-2">
-                {(['tous', 'formation'] as const).map(f => (
-                  <button
-                    key={f} type="button" onClick={() => setProspectFilter(f)}
-                    className={cn(
-                      'px-3 py-1 text-[11px] font-medium rounded-full border transition-colors cursor-pointer',
-                      prospectFilter === f
-                        ? 'bg-[#1267A4] text-white border-[#1267A4]'
-                        : 'border-[#E5E7EB] text-[#6B7280] hover:border-[#1267A4]/40'
-                    )}
-                  >
-                    {f === 'tous' ? 'Tous' : 'Cette formation'}
-                  </button>
-                ))}
-              </div>
-              <input
-                type="text" value={prospectSearch} onChange={e => setProspectSearch(e.target.value)}
-                placeholder="Rechercher par entreprise ou nom…"
-                className="w-full px-3.5 py-2.5 text-sm border border-[#E5E7EB] rounded-xl focus:outline-none focus:border-[#1267A4]/50 focus:ring-2 focus:ring-[#1267A4]/10 transition-colors mb-2"
-              />
-              <div className="space-y-1.5 max-h-44 overflow-y-auto">
-                {filteredProspects.length === 0 ? (
-                  <p className="text-[11px] text-[#9CA3AF] italic text-center py-4">Aucun prospect</p>
-                ) : (
-                  filteredProspects.slice(0, 30).map(p => (
-                    <button
-                      key={p.id} type="button" onClick={() => toggleProspect(p.id)}
-                      className={cn(
-                        'w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border text-sm transition-colors cursor-pointer text-left',
-                        selectedProspects.includes(p.id) ? 'border-[#1267A4] bg-[#EBF3FB]' : 'border-[#E5E7EB] hover:border-[#1267A4]/40'
-                      )}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-[#1F2937] text-xs truncate">{p.contact_prenom} {p.contact_nom}</p>
-                        <p className="text-[11px] text-[#9CA3AF] truncate">{p.nom_entreprise}</p>
-                      </div>
-                      {selectedProspects.includes(p.id) && <Check size={14} className="text-[#1267A4] shrink-0" />}
-                    </button>
-                  ))
-                )}
-              </div>
-              {selectedProspects.length > 0 && (
-                <p className="text-[11px] text-[#1267A4] font-medium mt-2">
-                  {selectedProspects.length} apprenant{selectedProspects.length > 1 ? 's' : ''} sélectionné{selectedProspects.length > 1 ? 's' : ''}
-                </p>
               )}
             </section>
 
