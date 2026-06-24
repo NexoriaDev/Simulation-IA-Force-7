@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, Plus, Clock, Euro, Users, Calendar,
-  BookOpen, X, Loader2,
+  BookOpen, X, Loader2, List, LayoutGrid,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import type { CatalogueFormation, TypeFormation } from '@/lib/types'
 
@@ -310,10 +310,12 @@ function CreateSessionModal({
 
 export default function FormationDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const router  = useRouter()
   const [formation, setFormation] = useState<CatalogueFormation | null>(null)
   const [sessions, setSessions]   = useState<SessionRow[]>([])
   const [loading, setLoading]     = useState(true)
   const [modal, setModal]         = useState(false)
+  const [view, setView]           = useState<'cards' | 'list'>('cards')
 
   useEffect(() => {
     if (!id) return
@@ -400,22 +402,42 @@ export default function FormationDetailPage() {
         </div>
       </motion.div>
 
-      {/* Titre section sessions + bouton */}
+      {/* Titre section sessions + toggle + bouton */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-semibold text-[#1F2937]">
           Sessions{sessions.length > 0 && <span className="text-[#9CA3AF] font-normal ml-1.5">({sessions.length})</span>}
         </h2>
-        <button
-          onClick={() => setModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#1267A4] text-white text-sm font-medium rounded-xl hover:bg-[#0f5a94] transition-colors cursor-pointer shadow-sm"
-        >
-          <Plus size={14} />
-          Créer une session
-        </button>
+        <div className="flex items-center gap-3">
+          {sessions.length > 0 && (
+            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setView('cards')}
+                title="Vue cartes"
+                className={cn('p-1.5 rounded-md transition-colors cursor-pointer', view === 'cards' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400 hover:text-gray-600')}
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                onClick={() => setView('list')}
+                title="Vue liste"
+                className={cn('p-1.5 rounded-md transition-colors cursor-pointer', view === 'list' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400 hover:text-gray-600')}
+              >
+                <List size={15} />
+              </button>
+            </div>
+          )}
+          <button
+            onClick={() => setModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#1267A4] text-white text-sm font-medium rounded-xl hover:bg-[#0f5a94] transition-colors cursor-pointer shadow-sm"
+          >
+            <Plus size={14} />
+            Créer une session
+          </button>
+        </div>
       </div>
 
-      {/* Cards sessions */}
-      {sessions.length === 0 ? (
+      {/* Sessions — vide */}
+      {sessions.length === 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -434,7 +456,10 @@ export default function FormationDetailPage() {
             Créer une session
           </button>
         </motion.div>
-      ) : (
+      )}
+
+      {/* Sessions — vue cards */}
+      {sessions.length > 0 && view === 'cards' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {sessions.map((s, i) => {
             const sem = nbSemaines(s.date_debut, s.date_fin)
@@ -446,30 +471,19 @@ export default function FormationDetailPage() {
                   transition={{ duration: 0.18, delay: i * 0.05 }}
                   className="bg-white rounded-2xl border border-[#E5E7EB] p-5 hover:shadow-md hover:border-[#1267A4]/30 transition-all cursor-pointer h-full"
                 >
-                  {/* Type + Statut */}
                   <div className="flex items-center justify-between mb-4">
-                    <span className={cn(
-                      'text-[11px] font-bold px-2.5 py-1 rounded-full',
-                      s.type_formation === 'INTER' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
-                    )}>
+                    <span className={cn('text-[11px] font-bold px-2.5 py-1 rounded-full', s.type_formation === 'INTER' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700')}>
                       {s.type_formation}
                     </span>
-                    <span className={cn(
-                      'text-[11px] font-medium px-2.5 py-1 rounded-full',
-                      STATUT_STYLE[s.statut_session] ?? 'bg-[#EBF3FB] text-[#1267A4]'
-                    )}>
+                    <span className={cn('text-[11px] font-medium px-2.5 py-1 rounded-full', STATUT_STYLE[s.statut_session] ?? 'bg-[#EBF3FB] text-[#1267A4]')}>
                       {STATUT_LABEL[s.statut_session] ?? s.statut_session}
                     </span>
                   </div>
-
-                  {/* Dates */}
                   <p className="text-sm font-semibold text-[#1F2937]">{fmtDate(s.date_debut)}</p>
                   <p className="text-xs text-[#9CA3AF] mt-0.5">→ {fmtDate(s.date_fin)}</p>
                   <p className="text-xs text-[#1267A4] font-medium mt-1 mb-4">
                     {sem} semaine{sem > 1 ? 's' : ''}
                   </p>
-
-                  {/* Stats */}
                   <div className="border-t border-[#F3F4F6] pt-3 space-y-2">
                     <div className="flex items-center gap-2 text-xs text-[#6B7280]">
                       <Users size={12} className="text-[#9CA3AF] shrink-0" />
@@ -495,6 +509,75 @@ export default function FormationDetailPage() {
             )
           })}
         </div>
+      )}
+
+      {/* Sessions — vue liste */}
+      {sessions.length > 0 && view === 'list' && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.15 }}
+          className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden"
+        >
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-[#F3F4F6] bg-[#F8F9FA]">
+                {['Période', 'Type', 'Statut', 'Apprenants', 'Formateur'].map(h => (
+                  <th key={h} className="text-left text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide px-5 py-3">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sessions.map((s, i) => (
+                <motion.tr
+                  key={s.id}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                  onClick={() => router.push(`/formations/${id}/sessions/${s.id}`)}
+                  className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#F8F9FA] transition-colors cursor-pointer"
+                >
+                  <td className="px-5 py-3.5">
+                    <p className="text-sm font-medium text-[#1F2937]">{fmtDate(s.date_debut)}</p>
+                    <p className="text-[11px] text-[#9CA3AF]">→ {fmtDate(s.date_fin)}</p>
+                    <p className="text-[11px] text-[#1267A4] font-medium">
+                      {nbSemaines(s.date_debut, s.date_fin)} sem.
+                    </p>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className={cn('text-[11px] font-bold px-2.5 py-1 rounded-full', s.type_formation === 'INTER' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700')}>
+                      {s.type_formation}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className={cn('text-[11px] font-medium px-2.5 py-1 rounded-full', STATUT_STYLE[s.statut_session] ?? 'bg-[#EBF3FB] text-[#1267A4]')}>
+                      {STATUT_LABEL[s.statut_session] ?? s.statut_session}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className="flex items-center gap-1.5 text-sm text-[#374151]">
+                      <Users size={13} className="text-[#9CA3AF]" />
+                      {s.nb_apprenants}
+                      {s.plafond_apprenants
+                        ? <span className="text-[#9CA3AF]">/ {s.plafond_apprenants}</span>
+                        : <span className="text-[#9CA3AF]">/ ∞</span>
+                      }
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    {s.formateurs.length === 0 ? (
+                      <span className="text-[11px] text-[#9CA3AF] italic">Non assigné</span>
+                    ) : (
+                      <span className="text-sm text-[#374151]">{s.formateurs.map(f => `${f.prenom} ${f.nom}`).join(', ')}</span>
+                    )}
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
+        </motion.div>
       )}
 
       <AnimatePresence>
