@@ -38,6 +38,7 @@ import {
   formatDateShort,
   formatDateTime,
   getTypeDossier,
+  getStatutDossierStep,
 } from '@/lib/utils/format'
 import type { StatutDossier, Apprenant } from '@/lib/types'
 import type { MilestoneState } from '@/lib/utils/format'
@@ -104,16 +105,16 @@ function ApprenantRow({ apprenant }: { apprenant: Apprenant }) {
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
-const TABS = ['profil', 'conversation', 'actions_requises', 'notifications', 'documents', 'parcours'] as const
+const TABS = ['profil', 'conversation', 'actions_requises', 'suivi_documentaire', 'notifications', 'parcours'] as const
 type TabKey = (typeof TABS)[number]
 
 const TAB_LABELS: Record<TabKey, string> = {
-  profil:           'Profil',
-  conversation:     'Conversation',
-  actions_requises: 'Actions requises',
-  notifications:    'Notifications',
-  documents:        'Documents',
-  parcours:         'Parcours de formation',
+  profil:              'Profil',
+  conversation:        'Conversation',
+  actions_requises:    'Actions requises',
+  suivi_documentaire:  'Suivi documentaire',
+  notifications:       'Notifications',
+  parcours:            'Parcours de formation',
 }
 
 // ─── ProfilTab ────────────────────────────────────────────────────────────────
@@ -542,72 +543,83 @@ function NotificationsTab({ prospect }: { prospect: any }) {
   )
 }
 
-// ─── DocumentsTab ─────────────────────────────────────────────────────────────
+// ─── SuiviDocumentaireTab ────────────────────────────────────────────────────
 
-function DocumentsTab({ documents }: { documents: any[] }) {
-  if (documents.length === 0) {
-    return (
-      <div className="bg-white rounded-xl border border-[#E5E7EB] px-5 py-10 text-center">
-        <FileText size={32} className="mx-auto text-[#D1D5DB] mb-3" />
-        <p className="text-sm text-[#9CA3AF]">Aucun document généré</p>
-      </div>
-    )
-  }
+function SuiviDocumentaireTab({ prospect }: { prospect: any }) {
+  const step = getStatutDossierStep(prospect.statut)
+
+  const cards = [
+    {
+      label: 'Devis',
+      pastilles: [
+        { label: 'Généré', done: step >= 2, date: '18 juin 2026' },
+        { label: 'Envoyé', done: step >= 3, date: '20 juin 2026' },
+        { label: 'Signé',  done: step >= 4, date: '23 juin 2026' },
+      ],
+    },
+    {
+      label: 'Tests Key Predict',
+      pastilles: [
+        { label: 'Généré',  done: step >= 4, date: '23 juin 2026' },
+        { label: 'Envoyé',  done: step >= 4, date: '23 juin 2026' },
+        { label: 'Remplis', done: step >= 5, date: '25 juin 2026' },
+      ],
+    },
+    {
+      label: 'Attestation de fin de formation',
+      pastilles: [
+        { label: 'Générée',      done: step >= 5, date: '25 juin 2026' },
+        { label: 'Envoyée',      done: step >= 5, date: '25 juin 2026' },
+        { label: 'Réceptionnée', done: step >= 6, date: '27 juin 2026' },
+      ],
+    },
+    {
+      label: 'Facture',
+      pastilles: [
+        { label: 'Générée', done: step >= 6, date: '27 juin 2026' },
+        { label: 'Envoyée', done: step >= 6, date: '27 juin 2026' },
+      ],
+    },
+  ]
 
   return (
-    <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
-      <div className="divide-y divide-[#F3F4F6]">
-        {documents.map((doc, i) => {
-          const typeLabel = TYPE_DOCUMENT_LABELS[doc.type_document as keyof typeof TYPE_DOCUMENT_LABELS] ?? doc.type_document
-          const statutCfg = STATUT_DOCUMENT_CONFIG[doc.statut as keyof typeof STATUT_DOCUMENT_CONFIG]
-          const url = doc.url_stockage_plateforme
-          return (
-            <motion.div
-              key={doc.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: i * 0.06 }}
-              className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#FAFAFA] transition-colors"
-            >
-              <div className="p-2 rounded-lg bg-[#EFF6FF]">
-                <FileText size={16} className="text-[#6199C1]" strokeWidth={1.75} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#1F2937]">{typeLabel}</p>
-                <p className="text-[11px] text-[#9CA3AF]">Généré le {formatDateShort(doc.created_at)}</p>
-              </div>
-              <span className={cn('text-[11px] font-medium px-2 py-0.5 rounded-md', statutCfg.bg, statutCfg.text)}>
-                {statutCfg.label}
-              </span>
-              <div className="flex items-center gap-1 shrink-0">
-                {url ? (
-                  <>
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 rounded-lg hover:bg-[#EFF6FF] text-[#9CA3AF] hover:text-[#6199C1] transition-colors"
-                      aria-label="Ouvrir"
-                    >
-                      <Eye size={14} />
-                    </a>
-                    <a
-                      href={url}
-                      download
-                      className="p-1.5 rounded-lg hover:bg-[#EFF6FF] text-[#9CA3AF] hover:text-[#6199C1] transition-colors"
-                      aria-label="Télécharger"
-                    >
-                      <Download size={14} />
-                    </a>
-                  </>
-                ) : (
-                  <span className="text-[10px] text-[#D1D5DB] px-2">—</span>
-                )}
-              </div>
-            </motion.div>
-          )
-        })}
-      </div>
+    <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden divide-y divide-[#F3F4F6]">
+      {cards.map((card) => {
+        const lastDone = [...card.pastilles].reverse().find(p => p.done)
+        const dateLabel = lastDone ? `${lastDone.label} le ${lastDone.date}` : null
+        return (
+          <div key={card.label} className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#FAFAFA] transition-colors">
+            <div className="p-2 rounded-lg bg-[#EFF6FF] shrink-0">
+              <FileText size={16} className="text-[#6199C1]" strokeWidth={1.75} />
+            </div>
+            <div className="min-w-[180px]">
+              <p className="text-sm font-medium text-[#1F2937]">{card.label}</p>
+              {dateLabel && <p className="text-[11px] text-[#9CA3AF]">{dateLabel}</p>}
+            </div>
+            <div className="flex items-center gap-1.5 flex-1 flex-wrap">
+              {card.pastilles.map(p => (
+                <span
+                  key={p.label}
+                  className={cn(
+                    'text-[11px] font-medium px-2.5 py-0.5 rounded-full',
+                    p.done ? 'bg-[#EFF6FF] text-[#6199C1]' : 'bg-[#F3F4F6] text-[#9CA3AF]'
+                  )}
+                >
+                  {p.label}
+                </span>
+              ))}
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button className="p-1.5 rounded-lg hover:bg-[#EFF6FF] text-[#9CA3AF] hover:text-[#6199C1] transition-colors cursor-pointer" aria-label="Visionner">
+                <Eye size={14} />
+              </button>
+              <button className="p-1.5 rounded-lg hover:bg-[#EFF6FF] text-[#9CA3AF] hover:text-[#6199C1] transition-colors cursor-pointer" aria-label="Télécharger">
+                <Download size={14} />
+              </button>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -816,7 +828,6 @@ export default function FicheDossierPage({ params }: { params: Promise<{ id: str
   const tabBadges: Partial<Record<TabKey, number>> = {
     conversation:     convData.length,
     actions_requises: 1, // ponytail: Phase 1 démo — calculé depuis DB en Phase 2
-    documents:        docData.length,
     parcours:         parcoursData.length > 0 ? parcoursData.length : undefined,
   }
 
@@ -916,8 +927,8 @@ export default function FicheDossierPage({ params }: { params: Promise<{ id: str
               {activeTab === 'profil' && <ProfilTab prospect={prospect} />}
               {activeTab === 'conversation' && <ConversationTab conversations={convData} prospect={prospect} onValidate={handleValidate} />}
               {activeTab === 'actions_requises' && <ActionsRequisesTab prospect={prospect} />}
+              {activeTab === 'suivi_documentaire' && <SuiviDocumentaireTab prospect={prospect} />}
               {activeTab === 'notifications' && <NotificationsTab prospect={prospect} />}
-              {activeTab === 'documents' && <DocumentsTab documents={docData} />}
               {activeTab === 'parcours' && <ParcoursFormationTab prospectId={id} sessions={parcoursData} />}
             </motion.div>
           </AnimatePresence>
