@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ClipboardList, FileText } from 'lucide-react'
+import { ClipboardList, FileText, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function SessionTabsNav({ id, sessionId }: { id: string; sessionId: string }) {
@@ -10,6 +10,7 @@ export function SessionTabsNav({ id, sessionId }: { id: string; sessionId: strin
   const base = `/formations/${id}/sessions/${sessionId}`
 
   const tabs = [
+    { href: `${base}/apprenants`, label: 'Apprenants',          Icon: Users },
     { href: base,                 label: 'Suivi administratif', Icon: ClipboardList },
     { href: `${base}/emargement`, label: 'Suivi émargement',    Icon: FileText },
   ]
