@@ -25,13 +25,13 @@ type RelanceForm = { objet: string; corps: string; delai_jours: number; delai_un
 type Relance     = RelanceForm & { id: string; ordre: number }
 type Template    = { id: string; etape_id: string; objet: string; corps: string; mode: ModeEmail; relances: Relance[] }
 type Etape       = { id: string; ordre: number; nom: string; branche: string | null; templates_email: Template[] }
-type FormState   = { nom: string; objet: string; corps: string; mode: ModeEmail; relances: RelanceForm[]; delaiJours: number; delaiUnite: DelaiUnite }
+type FormState   = { nom: string; objet: string; corps: string; mode: ModeEmail; relances: RelanceForm[]; delaiJours: number; delaiUnite: DelaiUnite; actionMode: ModeEmail; hasEmail: boolean }
 type ModalMode   =
   | { type: 'create'; insertAfterOrdre: number }
   | { type: 'edit'; etape: Etape }
   | { type: 'config-email'; etape: Etape }
 
-const EMPTY_FORM: FormState = { nom: '', objet: '', corps: '', mode: 'automatique', relances: [], delaiJours: 7, delaiUnite: 'jours' }
+const EMPTY_FORM: FormState = { nom: '', objet: '', corps: '', mode: 'automatique', relances: [], delaiJours: 7, delaiUnite: 'jours', actionMode: 'automatique', hasEmail: true }
 
 // ─── Mutation helper ──────────────────────────────────────────────────────────
 
@@ -110,6 +110,8 @@ export default function TimelineEmailsPage() {
       relances,
       delaiJours:  relances[0]?.delai_jours ?? 7,
       delaiUnite:  relances[0]?.delai_unite ?? 'jours',
+      actionMode:  'automatique',
+      hasEmail:    !!tpl,
     })
     setModal({ type: 'edit', etape })
   }
@@ -140,7 +142,7 @@ export default function TimelineEmailsPage() {
   async function handleSave() {
     if (modal?.type === 'create'      && !form.nom.trim())  return
     if (modal?.type === 'config-email' && !form.objet.trim()) return
-    if (modal?.type === 'edit'        && (!form.nom.trim() || !form.objet.trim())) return
+    if (modal?.type === 'edit'        && (!form.nom.trim() || (form.hasEmail && !form.objet.trim()))) return
     setSaving(true)
     try {
       if (modal?.type === 'create') {
@@ -159,10 +161,9 @@ export default function TimelineEmailsPage() {
           etapeId:    modal.etape.id,
           templateId: tpl?.id,
           nom:        form.nom,
-          objet:      form.objet,
-          corps:      form.corps,
-          mode:       form.mode,
-          relances:   form.relances,
+          actionMode: form.actionMode,
+          hasEmail:   form.hasEmail,
+          ...(form.hasEmail ? { objet: form.objet, corps: form.corps, mode: form.mode, relances: form.relances } : {}),
         })
       }
       setModal(null)
@@ -382,92 +383,133 @@ export default function TimelineEmailsPage() {
                   </div>
                 )}
 
+                {/* Action de l'étape — uniquement pour edit */}
+                {modal.type === 'edit' && (
+                  <div className="border-t border-gray-100 pt-4">
+                    <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Action de l'étape</label>
+                    <div className="flex gap-2">
+                      {(['automatique', 'a_valider'] as ModeEmail[]).map(m => (
+                        <button key={m} onClick={() => setForm(f => ({ ...f, actionMode: m }))}
+                          className={cn(
+                            'flex-1 py-2 rounded-lg text-sm font-medium border transition-all cursor-pointer',
+                            form.actionMode === m
+                              ? m === 'automatique' ? 'bg-green-50 border-green-300 text-green-700' : 'bg-orange-50 border-orange-300 text-orange-700'
+                              : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
+                          )}>
+                          {m === 'automatique' ? 'Automatique' : 'À valider'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Champs email — uniquement pour edit et config-email */}
                 {modal.type !== 'create' && (
                   <>
+                    {/* Header "Email associé" avec toggle Oui/Non — uniquement pour edit */}
                     {modal.type === 'edit' && (
-                      <div className="border-t border-gray-100 pt-3">
-                        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Email associé</p>
+                      <div className="border-t border-gray-100 pt-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Email associé</p>
+                          <div className="flex gap-1.5">
+                            {([true, false] as const).map(v => (
+                              <button key={String(v)} onClick={() => setForm(f => ({ ...f, hasEmail: v }))}
+                                className={cn(
+                                  'px-3 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer',
+                                  form.hasEmail === v
+                                    ? v ? 'bg-[#EBF3FB] border-[#1267A4]/30 text-[#1267A4]' : 'bg-gray-100 border-gray-300 text-gray-600'
+                                    : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
+                                )}>
+                                {v ? 'Oui' : 'Non'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     )}
 
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Objet</label>
-                      <input type="text" value={form.objet}
-                        onChange={e => setForm(f => ({ ...f, objet: e.target.value }))}
-                        className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm text-[#1F2937] focus:outline-none focus:border-[#1267A4] focus:ring-2 focus:ring-[#1267A4]/10 transition-colors"
-                        placeholder="Objet de l'email"
-                        autoFocus={modal.type === 'config-email'} />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Corps</label>
-                      <textarea value={form.corps}
-                        onChange={e => setForm(f => ({ ...f, corps: e.target.value }))}
-                        rows={8}
-                        className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-xs font-mono text-[#1F2937] focus:outline-none focus:border-[#1267A4] focus:ring-2 focus:ring-[#1267A4]/10 transition-colors resize-none"
-                        placeholder="Corps de l'email…" />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Mode d'envoi</label>
-                      <div className="flex gap-2">
-                        {(['automatique', 'a_valider'] as ModeEmail[]).map(m => (
-                          <button key={m} onClick={() => setForm(f => ({ ...f, mode: m }))}
-                            className={cn(
-                              'flex-1 py-2 rounded-lg text-sm font-medium border transition-all cursor-pointer',
-                              form.mode === m
-                                ? m === 'automatique' ? 'bg-green-50 border-green-300 text-green-700' : 'bg-orange-50 border-orange-300 text-orange-700'
-                                : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
-                            )}>
-                            {m === 'automatique' ? 'Automatique' : 'À valider'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="border-t border-gray-100 pt-3">
-                      <div className="flex items-center flex-wrap gap-x-4 gap-y-2 mb-3">
-                        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider shrink-0">Relances</p>
-                        <div className="flex items-center gap-2 ml-auto">
-                          <span className="text-xs text-gray-500">Nb de relances :</span>
-                          <input type="number" min={0} max={5} value={form.relances.length}
-                            onChange={e => setRelancesCount(parseInt(e.target.value) || 0)}
-                            className="w-12 px-2 py-1 rounded-lg border border-gray-200 text-sm text-center focus:outline-none focus:border-[#1267A4] transition-colors" />
+                    {/* Champs email — masqués si hasEmail = false */}
+                    {(modal.type === 'config-email' || form.hasEmail) && (
+                      <>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Objet</label>
+                          <input type="text" value={form.objet}
+                            onChange={e => setForm(f => ({ ...f, objet: e.target.value }))}
+                            className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm text-[#1F2937] focus:outline-none focus:border-[#1267A4] focus:ring-2 focus:ring-[#1267A4]/10 transition-colors"
+                            placeholder="Objet de l'email"
+                            autoFocus={modal.type === 'config-email'} />
                         </div>
-                        {form.relances.length > 0 && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">Délai :</span>
-                            <input type="number" min={1} value={form.delaiJours}
-                              onChange={e => {
-                                const d = parseInt(e.target.value) || 1
-                                setForm(f => ({ ...f, delaiJours: d, relances: f.relances.map(r => ({ ...r, delai_jours: d })) }))
-                              }}
-                              className="w-14 px-2 py-1 rounded-lg border border-gray-200 text-sm text-center focus:outline-none focus:border-[#1267A4] transition-colors" />
-                            <select value={form.delaiUnite}
-                              onChange={e => {
-                                const u = e.target.value as DelaiUnite
-                                setForm(f => ({ ...f, delaiUnite: u, relances: f.relances.map(r => ({ ...r, delai_unite: u })) }))
-                              }}
-                              className="px-2 py-1 rounded-lg border border-gray-200 text-xs text-gray-600 focus:outline-none focus:border-[#1267A4] transition-colors cursor-pointer bg-white">
-                              <option value="jours">jours</option>
-                              <option value="heures">heures</option>
-                            </select>
+
+                        <div>
+                          <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Corps</label>
+                          <textarea value={form.corps}
+                            onChange={e => setForm(f => ({ ...f, corps: e.target.value }))}
+                            rows={8}
+                            className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-xs font-mono text-[#1F2937] focus:outline-none focus:border-[#1267A4] focus:ring-2 focus:ring-[#1267A4]/10 transition-colors resize-none"
+                            placeholder="Corps de l'email…" />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Mode d'envoi</label>
+                          <div className="flex gap-2">
+                            {(['automatique', 'a_valider'] as ModeEmail[]).map(m => (
+                              <button key={m} onClick={() => setForm(f => ({ ...f, mode: m }))}
+                                className={cn(
+                                  'flex-1 py-2 rounded-lg text-sm font-medium border transition-all cursor-pointer',
+                                  form.mode === m
+                                    ? m === 'automatique' ? 'bg-green-50 border-green-300 text-green-700' : 'bg-orange-50 border-orange-300 text-orange-700'
+                                    : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
+                                )}>
+                                {m === 'automatique' ? 'Automatique' : 'À valider'}
+                              </button>
+                            ))}
                           </div>
-                        )}
-                      </div>
-                      {form.relances.map((r, i) => (
-                        <div key={i} className="mb-3 p-3 rounded-xl bg-gray-50 border border-gray-100 space-y-2">
-                          <p className="text-[11px] font-semibold text-[#1267A4]">Relance {i + 1}</p>
-                          <input type="text" value={r.objet} placeholder="Objet"
-                            onChange={e => setForm(f => { const rl = [...f.relances]; rl[i] = { ...rl[i], objet: e.target.value }; return { ...f, relances: rl } })}
-                            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-[#1267A4] transition-colors" />
-                          <textarea value={r.corps} rows={3} placeholder="Corps…"
-                            onChange={e => setForm(f => { const rl = [...f.relances]; rl[i] = { ...rl[i], corps: e.target.value }; return { ...f, relances: rl } })}
-                            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs font-mono focus:outline-none focus:border-[#1267A4] transition-colors resize-none" />
                         </div>
-                      ))}
-                    </div>
+
+                        <div className="border-t border-gray-100 pt-3">
+                          <div className="flex items-center flex-wrap gap-x-4 gap-y-2 mb-3">
+                            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider shrink-0">Relances</p>
+                            <div className="flex items-center gap-2 ml-auto">
+                              <span className="text-xs text-gray-500">Nb de relances :</span>
+                              <input type="number" min={0} max={5} value={form.relances.length}
+                                onChange={e => setRelancesCount(parseInt(e.target.value) || 0)}
+                                className="w-12 px-2 py-1 rounded-lg border border-gray-200 text-sm text-center focus:outline-none focus:border-[#1267A4] transition-colors" />
+                            </div>
+                            {form.relances.length > 0 && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500">Délai :</span>
+                                <input type="number" min={1} value={form.delaiJours}
+                                  onChange={e => {
+                                    const d = parseInt(e.target.value) || 1
+                                    setForm(f => ({ ...f, delaiJours: d, relances: f.relances.map(r => ({ ...r, delai_jours: d })) }))
+                                  }}
+                                  className="w-14 px-2 py-1 rounded-lg border border-gray-200 text-sm text-center focus:outline-none focus:border-[#1267A4] transition-colors" />
+                                <select value={form.delaiUnite}
+                                  onChange={e => {
+                                    const u = e.target.value as DelaiUnite
+                                    setForm(f => ({ ...f, delaiUnite: u, relances: f.relances.map(r => ({ ...r, delai_unite: u })) }))
+                                  }}
+                                  className="px-2 py-1 rounded-lg border border-gray-200 text-xs text-gray-600 focus:outline-none focus:border-[#1267A4] transition-colors cursor-pointer bg-white">
+                                  <option value="jours">jours</option>
+                                  <option value="heures">heures</option>
+                                </select>
+                              </div>
+                            )}
+                          </div>
+                          {form.relances.map((r, i) => (
+                            <div key={i} className="mb-3 p-3 rounded-xl bg-gray-50 border border-gray-100 space-y-2">
+                              <p className="text-[11px] font-semibold text-[#1267A4]">Relance {i + 1}</p>
+                              <input type="text" value={r.objet} placeholder="Objet"
+                                onChange={e => setForm(f => { const rl = [...f.relances]; rl[i] = { ...rl[i], objet: e.target.value }; return { ...f, relances: rl } })}
+                                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-[#1267A4] transition-colors" />
+                              <textarea value={r.corps} rows={3} placeholder="Corps…"
+                                onChange={e => setForm(f => { const rl = [...f.relances]; rl[i] = { ...rl[i], corps: e.target.value }; return { ...f, relances: rl } })}
+                                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs font-mono focus:outline-none focus:border-[#1267A4] transition-colors resize-none" />
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
               </div>
