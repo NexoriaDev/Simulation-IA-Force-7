@@ -545,81 +545,157 @@ function NotificationsTab({ prospect }: { prospect: any }) {
 
 // ─── SuiviDocumentaireTab ────────────────────────────────────────────────────
 
+type DocKey = 'devis' | 'tests' | 'attestation' | 'facture'
+type DocCard = {
+  key:       DocKey
+  label:     string
+  pastilles: { label: string; done: boolean }[]
+  fichiers:  { nom: string; etape: string; date: string; done: boolean }[]
+}
+
 function SuiviDocumentaireTab({ prospect }: { prospect: any }) {
+  const [detail, setDetail] = useState<DocKey | null>(null)
   const step = getStatutDossierStep(prospect.statut)
 
-  const cards = [
+  const cards: DocCard[] = [
     {
+      key: 'devis',
       label: 'Devis',
       pastilles: [
-        { label: 'Généré', done: step >= 2, date: '18 juin 2026' },
-        { label: 'Envoyé', done: step >= 3, date: '20 juin 2026' },
-        { label: 'Signé',  done: step >= 4, date: '23 juin 2026' },
+        { label: 'Généré', done: step >= 2 },
+        { label: 'Envoyé', done: step >= 3 },
+        { label: 'Signé',  done: step >= 4 },
+      ],
+      fichiers: [
+        { nom: 'Devis_Force7_Leroux.pdf', etape: 'Devis généré', date: '18 juin 2026', done: step >= 2 },
+        { nom: 'Devis_Signé_Leroux.pdf',  etape: 'Devis signé',  date: '23 juin 2026', done: step >= 4 },
       ],
     },
     {
+      key: 'tests',
       label: 'Tests Key Predict',
       pastilles: [
-        { label: 'Généré',  done: step >= 4, date: '23 juin 2026' },
-        { label: 'Envoyé',  done: step >= 4, date: '23 juin 2026' },
-        { label: 'Remplis', done: step >= 5, date: '25 juin 2026' },
+        { label: 'Généré',  done: step >= 4 },
+        { label: 'Envoyé',  done: step >= 4 },
+        { label: 'Remplis', done: step >= 5 },
+      ],
+      fichiers: [
+        { nom: 'Test_KeyPredict_Leroux.pdf',      etape: 'Test envoyé',       date: '23 juin 2026', done: step >= 4 },
+        { nom: 'Résultats_KeyPredict_Leroux.pdf', etape: 'Résultats remplis', date: '25 juin 2026', done: step >= 5 },
       ],
     },
     {
+      key: 'attestation',
       label: 'Attestation de fin de formation',
       pastilles: [
-        { label: 'Générée',      done: step >= 5, date: '25 juin 2026' },
-        { label: 'Envoyée',      done: step >= 5, date: '25 juin 2026' },
-        { label: 'Réceptionnée', done: step >= 6, date: '27 juin 2026' },
+        { label: 'Générée',      done: step >= 5 },
+        { label: 'Envoyée',      done: step >= 5 },
+        { label: 'Réceptionnée', done: step >= 6 },
+      ],
+      fichiers: [
+        { nom: 'Attestation_Formation_Leroux.pdf', etape: 'Attestation envoyée', date: '25 juin 2026', done: step >= 5 },
       ],
     },
     {
+      key: 'facture',
       label: 'Facture',
       pastilles: [
-        { label: 'Générée', done: step >= 6, date: '27 juin 2026' },
-        { label: 'Envoyée', done: step >= 6, date: '27 juin 2026' },
+        { label: 'Générée', done: step >= 6 },
+        { label: 'Envoyée', done: step >= 6 },
+      ],
+      fichiers: [
+        { nom: 'Facture_Force7_Leroux.pdf', etape: 'Facture envoyée', date: '27 juin 2026', done: step >= 6 },
       ],
     },
   ]
 
-  return (
-    <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden divide-y divide-[#F3F4F6]">
-      {cards.map((card) => {
-        const lastDone = [...card.pastilles].reverse().find(p => p.done)
-        const dateLabel = lastDone ? `${lastDone.label} le ${lastDone.date}` : null
-        return (
-          <div key={card.label} className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#FAFAFA] transition-colors">
+  // ── Niveau 2 : détail fichiers d'un document ──
+  if (detail !== null) {
+    const card = cards.find(c => c.key === detail)!
+    const fichiersDispo = card.fichiers.filter(f => f.done)
+    return (
+      <div className="space-y-4">
+        <button
+          onClick={() => setDetail(null)}
+          className="flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-[#1267A4] transition-colors cursor-pointer"
+        >
+          <ArrowLeft size={14} />
+          Suivi documentaire
+        </button>
+        <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-[#F3F4F6] flex items-center gap-3">
             <div className="p-2 rounded-lg bg-[#EFF6FF] shrink-0">
-              <FileText size={16} className="text-[#6199C1]" strokeWidth={1.75} />
+              <FileText size={15} className="text-[#6199C1]" strokeWidth={1.75} />
             </div>
-            <div className="min-w-[180px]">
-              <p className="text-sm font-medium text-[#1F2937]">{card.label}</p>
-              {dateLabel && <p className="text-[11px] text-[#9CA3AF]">{dateLabel}</p>}
+            <p className="text-sm font-semibold text-[#1F2937]">{card.label}</p>
+          </div>
+          {fichiersDispo.length === 0 ? (
+            <div className="px-5 py-10 text-center">
+              <p className="text-sm text-[#9CA3AF]">Aucun fichier disponible pour ce document.</p>
             </div>
-            <div className="flex items-center gap-1.5 flex-1 flex-wrap">
-              {card.pastilles.map(p => (
-                <span
-                  key={p.label}
-                  className={cn(
-                    'text-[11px] font-medium px-2.5 py-0.5 rounded-full',
-                    p.done ? 'bg-[#EFF6FF] text-[#6199C1]' : 'bg-[#F3F4F6] text-[#9CA3AF]'
-                  )}
-                >
-                  {p.label}
-                </span>
+          ) : (
+            <div className="divide-y divide-[#F3F4F6]">
+              {fichiersDispo.map(f => (
+                <div key={f.nom} className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#FAFAFA] transition-colors">
+                  <div className="p-2 rounded-lg bg-[#EFF6FF] shrink-0">
+                    <FileText size={15} className="text-[#6199C1]" strokeWidth={1.75} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[#1F2937]">{f.nom}</p>
+                    <p className="text-[11px] text-[#9CA3AF]">{f.etape} · {f.date}</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button className="p-1.5 rounded-lg hover:bg-[#EFF6FF] text-[#9CA3AF] hover:text-[#6199C1] transition-colors cursor-pointer" aria-label="Visionner">
+                      <Eye size={14} />
+                    </button>
+                    <button className="p-1.5 rounded-lg hover:bg-[#EFF6FF] text-[#9CA3AF] hover:text-[#6199C1] transition-colors cursor-pointer" aria-label="Télécharger">
+                      <Download size={14} />
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <button className="p-1.5 rounded-lg hover:bg-[#EFF6FF] text-[#9CA3AF] hover:text-[#6199C1] transition-colors cursor-pointer" aria-label="Visionner">
-                <Eye size={14} />
-              </button>
-              <button className="p-1.5 rounded-lg hover:bg-[#EFF6FF] text-[#9CA3AF] hover:text-[#6199C1] transition-colors cursor-pointer" aria-label="Télécharger">
-                <Download size={14} />
-              </button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Niveau 1 : vue cards ──
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      {cards.map(card => (
+        <div key={card.key} className="bg-white rounded-2xl border border-[#E5E7EB] p-5 flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-[#EFF6FF] shrink-0">
+              <FileText size={15} className="text-[#6199C1]" strokeWidth={1.75} />
             </div>
+            <p className="text-sm font-semibold text-[#1F2937] leading-tight">{card.label}</p>
           </div>
-        )
-      })}
+          <div className="flex flex-wrap gap-1.5">
+            {card.pastilles.map(p => (
+              <span
+                key={p.label}
+                className={cn(
+                  'text-[11px] font-medium px-2.5 py-0.5 rounded-full',
+                  p.done ? 'bg-[#EFF6FF] text-[#6199C1]' : 'bg-[#F3F4F6] text-[#9CA3AF]'
+                )}
+              >
+                {p.label}
+              </span>
+            ))}
+          </div>
+          <div className="flex justify-end mt-auto pt-1">
+            <button
+              onClick={() => setDetail(card.key)}
+              className="p-1.5 rounded-lg hover:bg-[#EFF6FF] text-[#9CA3AF] hover:text-[#6199C1] transition-colors cursor-pointer"
+              aria-label={`Voir les fichiers ${card.label}`}
+            >
+              <Eye size={14} />
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
