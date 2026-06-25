@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, Fragment } from 'react'
-import { Eye, X, CheckCircle2, XCircle, ChevronRight } from 'lucide-react'
+import { Eye, X, CheckCircle2, XCircle, ChevronRight, FileText, Download } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { cn } from '@/lib/utils'
 
 // ─── Données fictives ─────────────────────────────────────────────────────────
 
@@ -66,9 +67,18 @@ function PresenceBadge({ days }: { days: boolean[] }) {
   )
 }
 
+// ─── Feuilles d'émargement (données fictives demo) ───────────────────────────
+
+const FEUILLES = [
+  { nom: 'Émargement_Semaine_1.pdf', date: '12 juillet 2026' },
+  { nom: 'Émargement_Semaine_2.pdf', date: '19 juillet 2026' },
+  { nom: 'Émargement_Semaine_3.pdf', date: '26 juillet 2026' },
+]
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function EmargementPage() {
+  const [view, setView]             = useState<'semaines' | 'feuilles'>('semaines')
   const [expanded, setExpanded]     = useState<Set<number>>(new Set())
   const [semaineIdx, setSemaineIdx] = useState<number | null>(null)
 
@@ -84,6 +94,53 @@ export default function EmargementPage() {
 
   return (
     <>
+      {/* Sub-nav secondaire */}
+      <div className="flex items-center gap-1.5 mb-4">
+        {([
+          { key: 'semaines', label: 'Vue par semaine' },
+          { key: 'feuilles', label: 'Feuilles d\'émargement' },
+        ] as const).map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setView(key)}
+            className={cn(
+              'px-3.5 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer',
+              view === key
+                ? 'bg-[#EBF3FB] text-[#1267A4] border-[#1267A4]/30'
+                : 'bg-white text-[#6B7280] border-[#E5E7EB] hover:border-[#1267A4]/20 hover:text-[#1267A4]'
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'feuilles' ? (
+        <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden divide-y divide-[#F3F4F6]">
+          {FEUILLES.map(f => (
+            <div key={f.nom} className="flex items-center gap-4 px-5 py-3.5 hover:bg-[#FAFAFA] transition-colors">
+              <div className="p-2 rounded-lg bg-[#EFF6FF] shrink-0">
+                <FileText size={16} className="text-[#6199C1]" strokeWidth={1.75} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[#1F2937]">{f.nom}</p>
+                <p className="text-[11px] text-[#9CA3AF]">Importé le {f.date}</p>
+              </div>
+              <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-[#EBF3FB] text-[#1267A4] shrink-0">
+                Importé depuis EduSign
+              </span>
+              <div className="flex items-center gap-1 shrink-0">
+                <button className="p-1.5 rounded-lg hover:bg-[#EFF6FF] text-[#9CA3AF] hover:text-[#6199C1] transition-colors cursor-pointer" aria-label="Visionner">
+                  <Eye size={14} />
+                </button>
+                <button className="p-1.5 rounded-lg hover:bg-[#EFF6FF] text-[#9CA3AF] hover:text-[#6199C1] transition-colors cursor-pointer" aria-label="Télécharger">
+                  <Download size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
       <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden">
         <table className="w-full min-w-[480px]">
           <thead>
@@ -140,6 +197,8 @@ export default function EmargementPage() {
           </tbody>
         </table>
       </div>
+
+      )}
 
       {/* Modale émargement — tous les apprenants × tous les jours */}
       <AnimatePresence>
