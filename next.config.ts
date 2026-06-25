@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   turbopack: {},
+  async redirects() {
+    return [{ source: '/', destination: '/prospects', permanent: false }]
+  },
   webpack: (config, { webpack }) => {
     // ponytail: webpack n'injecte pas __dirname dans le bundle Edge de Vercel.
     // BannerPlugin le définit en tête de TOUS les bundles (safe — var est no-op
